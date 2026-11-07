@@ -55,8 +55,8 @@ O gerador parte da grade apagada e aplica toques aleatórios, então toda fase t
 ## Roadmap
 
 - [x] Tabuleiro jogável
-- [ ] Menu e seleção de fases
-- [ ] Progresso e estrelas salvos em `user://save.json`
+- [x] Menu e seleção de fases
+- [x] Progresso e estrelas salvos em `user://save.json`
 - [ ] Visual, som e ícone
 - [ ] Build Android (AAB) e teste fechado na Play Store
 - [ ] Build iOS

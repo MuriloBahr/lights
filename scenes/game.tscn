@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c4df88ktn5pk8" path="res://scripts/game.gd" id="1_uwrxv"]
 
-[node name="Game" type="Control" unique_id=1211879243]
+[node name="Game" type="Control" unique_id=1631056644]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

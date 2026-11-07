@@ -1,4 +1,4 @@
-# Lights Out
+# Lights
 
 Jogo de lógica para Android e iOS feito em Godot 4. Uma grade de luzes, e tocar em uma célula inverte ela e as quatro vizinhas. O objetivo é apagar tudo no menor número de toques.
 

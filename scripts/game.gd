@@ -88,6 +88,7 @@ func _build_grid(n: int) -> void:
 			b.custom_minimum_size = Vector2(px, px)
 			b.color = Palette.BULBS[(x + 2 * y) % Palette.BULBS.size()]
 			b.pressed.connect(board.toggle.bind(x, y))
+			b.pressed.connect(State.sfx.tap)
 			grid.add_child(b)
 			bulbs.append(b)
 
@@ -102,6 +103,7 @@ func _refresh() -> void:
 
 func _on_solved() -> void:
 	var level: Dictionary = levels[level_index]
+	State.sfx.win()
 	State.record(int(level["id"]), _stars(board.moves.size(), int(level["par"])))
 	info.text += "  |  Resolvido!"
 	await get_tree().create_timer(1.0).timeout

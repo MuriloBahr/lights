@@ -27,6 +27,10 @@ func _ready() -> void:
 	play.pressed.connect(_play)
 	box.add_child(play)
 
+	var settings := Ui.button("Configurações", Palette.BULBS[4], 24)
+	settings.pressed.connect(_open_settings)
+	box.add_child(settings)
+
 	var bottom := Control.new()
 	bottom.custom_minimum_size = Vector2(0, 48)
 	box.add_child(bottom)
@@ -85,3 +89,7 @@ func _tick() -> void:
 
 func _play() -> void:
 	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+
+
+func _open_settings() -> void:
+	add_child(SettingsPanel.new())

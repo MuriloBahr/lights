@@ -13,7 +13,7 @@ func _ready() -> void:
 	center.add_child(box)
 
 	var title := Label.new()
-	title.text = "Lights Out"
+	title.text = "Lights"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 

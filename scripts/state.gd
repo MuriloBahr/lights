@@ -9,6 +9,7 @@ var stars := {}
 
 
 func _ready() -> void:
+	RenderingServer.set_default_clear_color(Palette.BG)
 	levels = JSON.parse_string(FileAccess.get_file_as_string(LEVELS_PATH))["levels"]
 	_read()
 

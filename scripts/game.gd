@@ -1,8 +1,7 @@
 extends Control
 
 const LEVELS_PATH := "res://data/levels.json"
-const COLOR_ON := Color("f5c542")
-const COLOR_OFF := Color("2b2f3a")
+
 const GRID_PX := 420.0
 
 var board := Board.new()
@@ -10,7 +9,8 @@ var levels: Array = []
 var level_index := 0
 var grid := GridContainer.new()
 var info := Label.new()
-var buttons: Array[Button] = []
+var bulbs: Array[Bulb] = []
+var hint := Label.new()
 
 
 func _ready() -> void:
@@ -30,6 +30,10 @@ func _build_ui() -> void:
 
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(info)
+
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	root.add_child(hint)
 
 	var center := CenterContainer.new()
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -61,26 +65,27 @@ func _load(index: int) -> void:
 
 
 func _build_grid(n: int) -> void:
-	for b in buttons:
+	for b in bulbs:
 		b.queue_free()
-	buttons.clear()
+	bulbs.clear()
 	grid.columns = n
 	var px := int(GRID_PX / n)
 	for y in n:
 		for x in n:
-			var b := Button.new()
+			var b := Bulb.new()
 			b.custom_minimum_size = Vector2(px, px)
+			b.color = Palette.BULBS[(x + 2 * y) % Palette.BULBS.size()]
 			b.pressed.connect(board.toggle.bind(x, y))
 			grid.add_child(b)
-			buttons.append(b)
+			bulbs.append(b)
 
 
 func _refresh() -> void:
-	for i in buttons.size():
-		buttons[i].modulate = COLOR_ON if board.cells[i] == 1 else COLOR_OFF
+	for i in bulbs.size():
+		bulbs[i].set_lit(board.cells[i] == 1)
 	var level: Dictionary = levels[level_index]
 	info.text = "Fase %d  |  Toques: %d  |  Par: %d" % [level["id"], board.moves.size(), level["par"]]
-
+	hint.text = level.get("hint", "")
 
 func _on_solved() -> void:
 	info.text += "  |  Resolvido!"

@@ -3,7 +3,7 @@ import random
 from pathlib import Path
 
 # size, count, par min, par max
-TIERS = [(3, 8, 2, 5), (4, 14, 3, 8), (5, 16, 5, 12), (6, 12, 7, 16)]
+TIERS = [(3, 4, 1, 1), (3, 6, 2, 4), (4, 14, 3, 8), (5, 16, 5, 12), (6, 10, 7, 16)]
 OUT = Path(__file__).resolve().parent.parent / "data" / "levels.json"
 NEIGHBORS = ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1))
 
@@ -87,7 +87,8 @@ def main():
         for par, state in make_tier(n, count, lo, hi, rng):
             grid = [(state >> i) & 1 for i in range(n * n)]
             levels.append({"id": len(levels) + 1, "size": n, "grid": grid, "par": par})
-
+    
+    levels[0]["hint"] = "Toque numa luz: ela e as vizinhas invertem. Apague todas."
     OUT.parent.mkdir(parents=True, exist_ok=True)
     lines = [json.dumps(lv, separators=(",", ":")) for lv in levels]
     OUT.write_text('{"levels":[\n' + ",\n".join(lines) + "\n]}\n", encoding="utf-8")

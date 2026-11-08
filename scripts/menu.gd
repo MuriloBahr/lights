@@ -2,6 +2,7 @@ extends Control
 
 var bulbs: Array[Bulb] = []
 var _step := 0
+var _settings: SettingsPanel
 
 
 func _ready() -> void:
@@ -17,6 +18,15 @@ func _ready() -> void:
 	margin.add_child(box)
 
 	box.add_child(_spacer())
+
+	var top := HBoxContainer.new()
+	top.alignment = BoxContainer.ALIGNMENT_END
+	var gear := GearButton.new()
+	gear.custom_minimum_size = Vector2(72, 72)
+	gear.pressed.connect(_open_settings)
+	top.add_child(gear)
+	box.add_child(top)
+
 	box.add_child(_bulb_row())
 	box.add_child(_title())
 	box.add_child(Ui.label("apague todas as luzes", 26, Palette.BASE))
@@ -26,10 +36,6 @@ func _ready() -> void:
 	play.custom_minimum_size = Vector2(0, 88)
 	play.pressed.connect(_play)
 	box.add_child(play)
-
-	var settings := Ui.button("Configurações", Palette.BULBS[4], 24)
-	settings.pressed.connect(_open_settings)
-	box.add_child(settings)
 
 	var bottom := Control.new()
 	bottom.custom_minimum_size = Vector2(0, 48)
@@ -92,4 +98,7 @@ func _play() -> void:
 
 
 func _open_settings() -> void:
-	add_child(SettingsPanel.new())
+	if is_instance_valid(_settings):
+		return
+	_settings = SettingsPanel.new()
+	add_child(_settings)

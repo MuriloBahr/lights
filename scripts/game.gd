@@ -10,6 +10,7 @@ var info := Ui.label("", 24, Palette.BASE)
 var bulbs: Array[Bulb] = []
 var hint := Ui.label("", 22, Palette.OFF_FACE)
 var title := Ui.label("", 36)
+var _win: WinPanel
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -103,14 +104,27 @@ func _refresh() -> void:
 
 func _on_solved() -> void:
 	var level: Dictionary = levels[level_index]
+	var moves := board.moves.size()
+	var earned := _stars(moves, int(level["par"]))
+	State.record(int(level["id"]), earned)
 	State.sfx.win()
-	State.record(int(level["id"]), _stars(board.moves.size(), int(level["par"])))
-	info.text += "  |  Resolvido!"
-	await get_tree().create_timer(1.0).timeout
-	if level_index + 1 < levels.size():
-		_load(level_index + 1)
-	else:
-		_back()
+	await get_tree().create_timer(0.6).timeout
+	if is_instance_valid(_win):
+		return
+	_win = WinPanel.new()
+	_win.setup(moves, int(level["par"]), earned, level_index + 1 < levels.size())
+	_win.chosen.connect(_on_win_choice)
+	add_child(_win)
+
+
+func _on_win_choice(action: String) -> void:
+	match action:
+		"next":
+			_load(level_index + 1)
+		"retry":
+			board.reset()
+		"levels":
+			_back()
 
 
 func _stars(moves: int, par: int) -> int:

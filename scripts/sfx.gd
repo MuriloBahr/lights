@@ -51,3 +51,9 @@ func _player(path: String) -> AudioStreamPlayer:
 	p.max_polyphony = 4
 	add_child(p)
 	return p
+
+
+func ding(step: int) -> void:
+	_tap.pitch_scale = 1.0 + 0.3 * step
+	_tap.play()
+	_buzz(20)

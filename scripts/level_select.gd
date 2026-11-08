@@ -5,6 +5,7 @@ const CARD := Vector2(148, 156)
 
 
 func _ready() -> void:
+	State.sfx.duck(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)

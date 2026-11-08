@@ -14,6 +14,7 @@ var _win: WinPanel
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	State.sfx.duck(true)
 	levels = State.levels
 	level_index = State.current_level
 	_build_ui()
@@ -71,6 +72,7 @@ func _action(text: String, color: Color, callback: Callable) -> Button:
 
 
 func _load(index: int) -> void:
+	State.sfx.enter()
 	level_index = index
 	var level: Dictionary = levels[index]
 	_build_grid(int(level["size"]))
@@ -91,6 +93,7 @@ func _build_grid(n: int) -> void:
 			b.pressed.connect(board.toggle.bind(x, y))
 			b.pressed.connect(State.sfx.tap)
 			grid.add_child(b)
+			b.appear(0.05 * (x + y))
 			bulbs.append(b)
 
 

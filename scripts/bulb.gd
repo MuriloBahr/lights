@@ -26,6 +26,15 @@ func set_lit(value: bool) -> void:
 	_fade.tween_property(self, "glow", 1.0 if lit else 0.0, 0.28).set_trans(Tween.TRANS_SINE)
 
 
+func appear(delay: float) -> void:
+	scale = Vector2.ZERO
+	if _pop:
+		_pop.kill()
+	_pop = create_tween()
+	_pop.tween_interval(delay)
+	_pop.tween_property(self, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		pivot_offset = size / 2.0

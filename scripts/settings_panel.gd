@@ -5,8 +5,8 @@ const ROWS = [["music", "Música"], ["sfx", "Efeitos"], ["vibration", "Vibraçã
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
 	var dim := ColorRect.new()
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.color = Color(0, 0, 0, 0.55)

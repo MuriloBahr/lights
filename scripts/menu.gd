@@ -3,9 +3,12 @@ extends Control
 var bulbs: Array[Bulb] = []
 var _step := 0
 var _settings: SettingsPanel
+var _timer: Timer
+var _starting := false
 
 
 func _ready() -> void:
+	State.sfx.duck(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -60,11 +63,11 @@ func _bulb_row() -> HBoxContainer:
 		row.add_child(b)
 		bulbs.append(b)
 
-	var timer := Timer.new()
-	timer.wait_time = 0.35
-	timer.autostart = true
-	timer.timeout.connect(_tick)
-	add_child(timer)
+	_timer = Timer.new()
+	_timer.wait_time = 0.35
+	_timer.autostart = true
+	_timer.timeout.connect(_tick)
+	add_child(_timer)
 	return row
 
 
@@ -94,8 +97,17 @@ func _tick() -> void:
 
 
 func _play() -> void:
-	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
-
+	if _starting:
+		return
+	_starting = true
+	_timer.stop()
+	State.sfx.start()
+	var t := create_tween()
+	for b in bulbs:
+		t.tween_callback(b.set_lit.bind(true))
+		t.tween_interval(0.08)
+	t.tween_interval(0.2)
+	t.tween_callback(State.go.bind("res://scenes/level_select.tscn"))
 
 func _open_settings() -> void:
 	if is_instance_valid(_settings):

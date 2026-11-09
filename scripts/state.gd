@@ -7,7 +7,7 @@ const FADE_TIME := 0.25
 var levels: Array = []
 var current_level := 0
 var stars := {}
-var settings := {"music": true, "sfx": true, "vibration": true}
+var settings := {"music": true, "sfx": true, "vibration": true, "seen_howto": false}
 var sfx := Sfx.new()
 
 var _fade := ColorRect.new()

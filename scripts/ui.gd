@@ -2,7 +2,7 @@ class_name Ui
 extends RefCounted
 
 
-static func button(text: String, color: Color, font_size := 28) -> Button:
+static func button(text: String, color: Color, font_size := 28, sound := "click") -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
@@ -14,6 +14,7 @@ static func button(text: String, color: Color, font_size := 28) -> Button:
 	b.add_theme_stylebox_override("hover", _box(color.lightened(0.12), 6))
 	b.add_theme_stylebox_override("pressed", _box(color.darkened(0.08), 2))
 	b.add_theme_stylebox_override("disabled", _box(Palette.OFF, 6))
+	b.pressed.connect(State.sfx.glow if sound == "glow" else State.sfx.click)
 	return b
 
 

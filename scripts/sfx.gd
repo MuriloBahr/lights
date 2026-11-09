@@ -13,6 +13,7 @@ var _start: AudioStreamPlayer
 var _music: AudioStreamPlayer
 var _music_tween: Tween
 var _music_target := MUSIC_DB
+var _glow: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -24,6 +25,8 @@ func _ready() -> void:
 	_click.volume_db = -4.0
 	_start = _player("res://assets/sfx/start.wav")
 	_start_music()
+	_glow = _player("res://assets/sfx/enter_glow.wav")
+	_glow.volume_db = -3.0
 
 
 func apply(settings: Dictionary) -> void:
@@ -71,6 +74,11 @@ func win() -> void:
 	_win.play()
 	_buzz(120)
 	_dip()
+
+
+func glow() -> void:
+	_glow.play()
+	_buzz(15)
 
 
 func _notification(what: int) -> void:

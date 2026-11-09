@@ -6,7 +6,7 @@ const ROWS = [["music", "Música"], ["sfx", "Efeitos"], ["vibration", "Vibraçã
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
+
 	var dim := ColorRect.new()
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.color = Color(0, 0, 0, 0.55)
@@ -33,6 +33,10 @@ func _ready() -> void:
 	box.add_child(Ui.label("Configurações", 36))
 	for row in ROWS:
 		box.add_child(_row(row[0], row[1]))
+	
+	var how := Ui.button("Como jogar", Palette.BULBS[3])
+	how.pressed.connect(_open_how)
+	box.add_child(how)
 
 	var close := Ui.button("Fechar", Palette.BULBS[2])
 	close.pressed.connect(queue_free)
@@ -62,3 +66,7 @@ func _toggle(key: String, bulb: Bulb) -> void:
 	State.set_setting(key, on)
 	bulb.set_lit(on)
 	State.sfx.tap()
+
+
+func _open_how() -> void:
+	add_child(HowToPanel.new())

@@ -16,6 +16,7 @@ func _gui_input(event: InputEvent) -> void:
 	var e := event as InputEventMouseButton
 	if e and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		_bounce()
+		State.sfx.glow()
 		pressed.emit()
 
 

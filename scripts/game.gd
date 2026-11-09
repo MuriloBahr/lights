@@ -14,13 +14,16 @@ var _win: WinPanel
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	State.sfx.duck(true)
 	levels = State.levels
 	level_index = State.current_level
+	State.sfx.duck(true)
 	_build_ui()
 	board.changed.connect(_refresh)
 	board.solved.connect(_on_solved)
 	_load(level_index)
+	if not State.settings["seen_howto"]:
+		State.set_setting("seen_howto", true)
+		add_child(HowToPanel.new())
 
 
 func _build_ui() -> void:

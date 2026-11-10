@@ -33,6 +33,6 @@ static func _box(color: Color, depth: int) -> StyleBoxFlat:
 	sb.set_corner_radius_all(22)
 	sb.border_width_bottom = depth
 	sb.border_color = color.darkened(0.3)
-	sb.content_margin_left = 24
-	sb.content_margin_right = 24
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
 	return sb

@@ -5,20 +5,25 @@ var _step := 0
 var _settings: SettingsPanel
 var _timer: Timer
 var _starting := false
+var _margin: MarginContainer
+var _bulb_row: HBoxContainer
+var _title_label: RichTextLabel
+var _play_button: Button
 
 
 func _ready() -> void:
 	State.sfx.duck(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 32)
-	add_child(margin)
+	var backdrop := WorldBackdrop.new()
+	backdrop.setup(1)
+	add_child(backdrop)
+	_margin = MarginContainer.new()
+	_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_margin)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 24)
-	margin.add_child(box)
+	_margin.add_child(box)
 
 	box.add_child(_spacer())
 
@@ -30,19 +35,22 @@ func _ready() -> void:
 	top.add_child(gear)
 	box.add_child(top)
 
-	box.add_child(_bulb_row())
-	box.add_child(_title())
+	_bulb_row = _make_bulb_row()
+	box.add_child(_bulb_row)
+	_title_label = _title()
+	box.add_child(_title_label)
 	box.add_child(Ui.label("apague todas as luzes", 26, Palette.BASE))
 	box.add_child(_spacer())
 
-	var play := Ui.button("Jogar", Palette.BULBS[0], 40)
-	play.custom_minimum_size = Vector2(0, 88)
-	play.pressed.connect(_play)
-	box.add_child(play)
+	_play_button = Ui.button("Jogar", Palette.BULBS[0], 40)
+	_play_button.pressed.connect(_play)
+	box.add_child(_play_button)
 
 	var bottom := Control.new()
 	bottom.custom_minimum_size = Vector2(0, 48)
 	box.add_child(bottom)
+	get_viewport().size_changed.connect(_apply_responsive_layout)
+	_apply_responsive_layout()
 
 
 func _spacer() -> Control:
@@ -51,7 +59,7 @@ func _spacer() -> Control:
 	return c
 
 
-func _bulb_row() -> HBoxContainer:
+func _make_bulb_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 4)
@@ -69,6 +77,23 @@ func _bulb_row() -> HBoxContainer:
 	_timer.timeout.connect(_tick)
 	add_child(_timer)
 	return row
+
+
+func _apply_responsive_layout() -> void:
+	if not is_instance_valid(_margin):
+		return
+	var viewport_size := get_viewport_rect().size
+	var horizontal_margin := int(clampf(viewport_size.x * 0.06, 16.0, 32.0))
+	var vertical_margin := int(clampf(viewport_size.y * 0.04, 16.0, 32.0))
+	for side in ["left", "right"]:
+		_margin.add_theme_constant_override("margin_" + side, horizontal_margin)
+	for side in ["top", "bottom"]:
+		_margin.add_theme_constant_override("margin_" + side, vertical_margin)
+	var bulb_size := minf(88.0, (viewport_size.x - horizontal_margin * 2.0 - 16.0) / 5.0)
+	for bulb in bulbs:
+		bulb.custom_minimum_size = Vector2(bulb_size, bulb_size)
+	_title_label.add_theme_font_size_override("normal_font_size", int(clampf(viewport_size.x * 0.14, 44.0, 72.0)))
+	_play_button.custom_minimum_size.y = clampf(viewport_size.y * 0.09, 64.0, 88.0)
 
 
 func _title() -> RichTextLabel:

@@ -12,6 +12,12 @@ var glow := 0.0:
 
 var _fade: Tween
 var _pop: Tween
+var _hint_tween: Tween
+var _effect_tween: Tween
+var pulse_strength := 0.0:
+	set(value):
+		pulse_strength = value
+		queue_redraw()
 var _base_box := StyleBoxFlat.new()
 var _disc_box := StyleBoxFlat.new()
 
@@ -33,6 +39,31 @@ func appear(delay: float) -> void:
 	_pop = create_tween()
 	_pop.tween_interval(delay)
 	_pop.tween_property(self, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func pulse_hint() -> void:
+	if _hint_tween:
+		_hint_tween.kill()
+	scale = Vector2.ONE
+	modulate = Color.WHITE
+	_hint_tween = create_tween()
+	_hint_tween.set_loops(3)
+	_hint_tween.tween_property(self, "scale", Vector2(1.16, 1.16), 0.22).set_trans(Tween.TRANS_SINE)
+	_hint_tween.parallel().tween_property(self, "modulate", Color(1.0, 0.86, 0.35), 0.22)
+	_hint_tween.tween_property(self, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_SINE)
+	_hint_tween.parallel().tween_property(self, "modulate", Color.WHITE, 0.22)
+
+
+func play_effect(delay: float) -> void:
+	if _effect_tween:
+		_effect_tween.kill()
+	_effect_tween = create_tween()
+	if delay > 0.0:
+		_effect_tween.tween_interval(delay)
+	_effect_tween.tween_property(self, "scale", Vector2(1.14, 1.14), 0.11).set_trans(Tween.TRANS_BACK)
+	_effect_tween.parallel().tween_property(self, "pulse_strength", 1.0, 0.1)
+	_effect_tween.tween_property(self, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_SINE)
+	_effect_tween.parallel().tween_property(self, "pulse_strength", 0.0, 0.24)
 
 
 func _notification(what: int) -> void:
@@ -69,6 +100,8 @@ func _draw() -> void:
 	var r := s * 0.34
 	var body := Palette.OFF.lerp(color, glow)
 
+	if pulse_strength > 0.01:
+		draw_arc(c, r * 1.24, 0.0, TAU, 36, Color(color, pulse_strength * 0.8), maxf(2.0, s * 0.035), true)
 	for i in 6:
 		_disc(c, r * (1.1 + 0.1 * i), Color(color, 0.07 * glow))
 

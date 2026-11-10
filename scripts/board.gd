@@ -14,11 +14,14 @@ var cells := PackedByteArray()
 var initial := PackedByteArray()
 var active := PackedByteArray()
 var offsets: Array = SHAPES["plus"]
+var effect := "none"
 var moves: Array[Vector2i] = []
+var last_touched: Array[int] = []
 
 
 func load_level(level: Dictionary) -> void:
 	size = int(level["size"])
+	effect = String(level.get("effect", "none"))
 	offsets = SHAPES[level.get("shape", "plus")]
 	var mask: Array = level.get("mask", [])
 	active.resize(size * size)
@@ -32,6 +35,7 @@ func load_level(level: Dictionary) -> void:
 func reset() -> void:
 	cells = initial.duplicate()
 	moves.clear()
+	last_touched.clear()
 	changed.emit()
 
 
@@ -63,10 +67,32 @@ func is_solved() -> bool:
 
 
 func _apply(p: Vector2i) -> void:
+	var touched: Dictionary = {}
 	for d in offsets:
 		var q: Vector2i = p + d
-		if q.x < 0 or q.x >= size or q.y < 0 or q.y >= size:
-			continue
-		var i := q.y * size + q.x
-		if active[i] == 1:
-			cells[i] ^= 1
+		_mark(touched, q)
+	_apply_effect(p, touched)
+	last_touched.clear()
+	for i in touched.keys():
+		var index := int(i)
+		cells[index] ^= 1
+		last_touched.append(index)
+
+
+func _mark(touched: Dictionary, pos: Vector2i) -> void:
+	if pos.x < 0 or pos.x >= size or pos.y < 0 or pos.y >= size:
+		return
+	var i := pos.y * size + pos.x
+	if active[i] == 1:
+		touched[i] = true
+
+
+func _apply_effect(p: Vector2i, touched: Dictionary) -> void:
+	match effect:
+		"mirror":
+			_mark(touched, Vector2i(size - 1 - p.x, size - 1 - p.y))
+		"line":
+			for x in range(size):
+				_mark(touched, Vector2i(x, p.y))
+			for y in range(size):
+				_mark(touched, Vector2i(p.x, y))

@@ -47,6 +47,19 @@ func tap() -> void:
 	_buzz(15)
 
 
+func toggle(is_lit: bool) -> void:
+	_tap.pitch_scale = randf_range(1.08, 1.16) if is_lit else randf_range(0.82, 0.9)
+	_tap.play()
+	_buzz(12)
+
+
+func combo(streak: int) -> void:
+	_glow.pitch_scale = clampf(0.9 + streak * 0.06, 0.9, 1.35)
+	_glow.play()
+	if streak >= 3:
+		_buzz(24)
+
+
 func ding(step: int) -> void:
 	_tap.pitch_scale = 1.0 + 0.3 * step
 	_tap.play()

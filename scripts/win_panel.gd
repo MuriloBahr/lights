@@ -7,19 +7,24 @@ var _moves := 0
 var _par := 0
 var _earned := 0
 var _has_next := false
+var _daily := false
 var _counter := Ui.label("", 30, Palette.BASE)
 var _bulbs: Array[Bulb] = []
 
 
-func setup(moves: int, par: int, earned: int, has_next: bool) -> void:
+func setup(moves: int, par: int, earned: int, has_next: bool, daily := false) -> void:
 	_moves = moves
 	_par = par
 	_earned = earned
 	_has_next = has_next
+	_daily = daily
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var viewport_size := get_viewport_rect().size
+	var compact := viewport_size.x < 400.0
+	var panel_margin := int(clampf(viewport_size.x * 0.055, 14.0, 28.0))
 
 	var dim := ColorRect.new()
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -35,46 +40,47 @@ func _ready() -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Palette.OFF
 	sb.set_corner_radius_all(32)
-	sb.set_content_margin_all(28)
+	sb.set_content_margin_all(panel_margin)
 	panel.add_theme_stylebox_override("panel", sb)
-	panel.custom_minimum_size = Vector2(440, 0)
+	panel.custom_minimum_size = Vector2(minf(440.0, viewport_size.x - 24.0), 0)
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 20)
+	box.add_theme_constant_override("separation", 14 if compact else 20)
 	panel.add_child(box)
 
-	box.add_child(Ui.label("Resolvido!", 48, Palette.BULBS[1]))
-	box.add_child(Ui.label(["Boa!", "Muito bem!", "Perfeito!"][_earned - 1], 28, Palette.BASE))
-	box.add_child(_bulb_row())
+	box.add_child(Ui.label("Desafio concluído!" if _daily else "Resolvido!", 30 if compact else (42 if _daily else 48), Palette.BULBS[1]))
+	box.add_child(Ui.label(["Boa!", "Muito bem!", "Perfeito!"][_earned - 1], 22 if compact else 28, Palette.BASE))
+	box.add_child(_bulb_row(72.0 if compact else 96.0))
 	box.add_child(_counter)
+	_counter.add_theme_font_size_override("font_size", 23 if compact else 30)
 	_set_counter(0.0)
 
 	if _has_next:
 		box.add_child(_choice("Próxima", Palette.BULBS[2], "next"))
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	row.add_child(_choice("Repetir", Palette.BULBS[1], "retry"))
-	row.add_child(_choice("Fases", Palette.BULBS[3], "levels"))
+	row.add_theme_constant_override("separation", 8 if compact else 12)
+	row.add_child(_choice("Repetir", Palette.BULBS[1], "retry", 20 if compact else 28))
+	row.add_child(_choice("Fases", Palette.BULBS[3], "levels", 20 if compact else 28))
 	box.add_child(row)
 
 	_animate(panel)
 
 
-func _bulb_row() -> HBoxContainer:
+func _bulb_row(bulb_size: float) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	for i in 3:
 		var b := Bulb.new()
-		b.custom_minimum_size = Vector2(96, 96)
+		b.custom_minimum_size = Vector2(bulb_size, bulb_size)
 		b.color = Palette.BULBS[1]
 		row.add_child(b)
 		_bulbs.append(b)
 	return row
 
 
-func _choice(text: String, color: Color, action: String) -> Button:
-	var b := Ui.button(text, color)
+func _choice(text: String, color: Color, action: String, font_size := 28) -> Button:
+	var b := Ui.button(text, color, font_size)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.pressed.connect(_pick.bind(action))
 	return b

@@ -5,6 +5,7 @@ const SAVE_PATH := "user://save.json"
 const FADE_TIME := 0.25
 
 var levels: Array = []
+var worlds: Array = []
 var current_level := 0
 var stars := {}
 var settings := {"music": true, "sfx": true, "vibration": true, "seen_howto": false}
@@ -16,7 +17,9 @@ var _busy := false
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(Palette.BG)
-	levels = JSON.parse_string(FileAccess.get_file_as_string(LEVELS_PATH))["levels"]
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LEVELS_PATH))
+	levels = data["levels"]
+	worlds = data["worlds"]
 	_read()
 	add_child(sfx)
 	sfx.apply(settings)

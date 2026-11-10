@@ -5,7 +5,6 @@ const CARD := Vector2(148, 156)
 
 
 func _ready() -> void:
-	State.sfx.duck(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -19,7 +18,7 @@ func _ready() -> void:
 
 	var top := HBoxContainer.new()
 	root.add_child(top)
-	var back := Ui.button("<", Palette.BULBS[3])
+	var back := Ui.button("<", Palette.BULBS[3], 28, "glow")
 	back.custom_minimum_size = Vector2(64, 64)
 	back.pressed.connect(_back)
 	top.add_child(back)
@@ -43,24 +42,51 @@ func _ready() -> void:
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(center)
 
+	var list := VBoxContainer.new()
+	list.custom_minimum_size = Vector2(COLUMNS * CARD.x + (COLUMNS - 1) * 12, 0)
+	list.add_theme_constant_override("separation", 12)
+	center.add_child(list)
+
+	var total := 0
+	var current := -1
+	var grid: GridContainer
+	for i in State.levels.size():
+		var level: Dictionary = State.levels[i]
+		total += State.stars_for(int(level["id"]))
+		var w := int(level["world"])
+		if w != current:
+			current = w
+			list.add_child(_world_header(State.worlds[w - 1]))
+			grid = _new_grid()
+			list.add_child(grid)
+		grid.add_child(_card(i, State.worlds[w - 1]))
+	progress.text = "%d / %d lâmpadas" % [total, State.levels.size() * 3]
+
+
+func _world_header(world: Dictionary) -> VBoxContainer:
+	var color: Color = Palette.BULBS[int(world["color"])]
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	box.add_child(Ui.label(str(world["name"]), 34, color))
+	var rule := Ui.label(str(world["rule"]), 20, Palette.BASE)
+	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(rule)
+	return box
+
+
+func _new_grid() -> GridContainer:
 	var grid := GridContainer.new()
 	grid.columns = COLUMNS
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
-	center.add_child(grid)
-
-	var total := 0
-	for i in State.levels.size():
-		total += State.stars_for(int(State.levels[i]["id"]))
-		grid.add_child(_card(i))
-	progress.text = "%d / %d lâmpadas" % [total, State.levels.size() * 3]
+	return grid
 
 
-func _card(index: int) -> Button:
+func _card(index: int, world: Dictionary) -> Button:
 	var level: Dictionary = State.levels[index]
 	var id := int(level["id"])
 	var unlocked := State.is_unlocked(id)
-	var color: Color = Palette.BULBS[(int(level["size"]) - 3) % Palette.BULBS.size()]
+	var color: Color = Palette.BULBS[int(world["color"])]
 
 	var b := Ui.button("", color)
 	b.custom_minimum_size = CARD
@@ -95,8 +121,8 @@ func _card(index: int) -> Button:
 
 func _play(index: int) -> void:
 	State.current_level = index
-	get_tree().change_scene_to_file("res://scenes/game.tscn")
+	State.go("res://scenes/game.tscn")
 
 
 func _back() -> void:
-	get_tree().change_scene_to_file("res://scenes/menu.tscn")
+	State.go("res://scenes/menu.tscn")

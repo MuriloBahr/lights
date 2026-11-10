@@ -4,18 +4,27 @@ extends RefCounted
 signal changed
 signal solved
 
-const DIRS = [Vector2i.ZERO, Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
+const SHAPES := {
+	"plus": [Vector2i(0, 0), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)],
+	"x": [Vector2i(0, 0), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)],
+}
 
 var size := 0
 var cells := PackedByteArray()
 var initial := PackedByteArray()
+var active := PackedByteArray()
+var offsets: Array = SHAPES["plus"]
 var moves: Array[Vector2i] = []
 
 
 func load_level(level: Dictionary) -> void:
 	size = int(level["size"])
+	offsets = SHAPES[level.get("shape", "plus")]
+	var mask: Array = level.get("mask", [])
+	active.resize(size * size)
 	initial.resize(size * size)
-	for i in initial.size():
+	for i in size * size:
+		active[i] = 1 if mask.is_empty() else int(mask[i])
 		initial[i] = int(level["grid"][i])
 	reset()
 
@@ -54,7 +63,10 @@ func is_solved() -> bool:
 
 
 func _apply(p: Vector2i) -> void:
-	for d in DIRS:
+	for d in offsets:
 		var q: Vector2i = p + d
-		if q.x >= 0 and q.x < size and q.y >= 0 and q.y < size:
-			cells[q.y * size + q.x] ^= 1
+		if q.x < 0 or q.x >= size or q.y < 0 or q.y >= size:
+			continue
+		var i := q.y * size + q.x
+		if active[i] == 1:
+			cells[i] ^= 1

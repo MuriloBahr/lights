@@ -78,14 +78,16 @@ func _load(index: int) -> void:
 	State.sfx.enter()
 	level_index = index
 	var level: Dictionary = levels[index]
-	_build_grid(int(level["size"]))
+	_build_grid(level)
 	board.load_level(level)
 
 
-func _build_grid(n: int) -> void:
+func _build_grid(level: Dictionary) -> void:
 	for b in bulbs:
 		b.queue_free()
 	bulbs.clear()
+	var n := int(level["size"])
+	var mask: Array = level.get("mask", [])
 	grid.columns = n
 	var px := int(GRID_PX / n)
 	for y in n:
@@ -93,11 +95,15 @@ func _build_grid(n: int) -> void:
 			var b := Bulb.new()
 			b.custom_minimum_size = Vector2(px, px)
 			b.color = Palette.BULBS[(x + 2 * y) % Palette.BULBS.size()]
-			b.pressed.connect(board.toggle.bind(x, y))
-			b.pressed.connect(State.sfx.tap)
+			if mask.is_empty() or int(mask[y * n + x]) == 1:
+				b.pressed.connect(board.toggle.bind(x, y))
+				b.pressed.connect(State.sfx.tap)
+			else:
+				b.modulate.a = 0.0
+				b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			grid.add_child(b)
-			b.appear(0.05 * (x + y))
 			bulbs.append(b)
+			b.appear(0.45 * (x + y) / float(2 * n - 2))
 
 
 func _refresh() -> void:

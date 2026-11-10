@@ -69,10 +69,10 @@ func _text(text: String) -> Label:
 
 
 func _demo_grid() -> Control:
-	var wrap := CenterContainer.new()
-	var grid := GridContainer.new()
 	var vp := get_viewport_rect().size
 	var cell := clampi(int(minf((vp.x - 112.0) / 3.0, (vp.y - 496.0) / 3.0)), 48, 110)
+	var wrap := CenterContainer.new()
+	var grid := GridContainer.new()
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 4)

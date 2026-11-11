@@ -192,7 +192,8 @@ func _refresh() -> void:
 	for i in bulbs.size():
 		bulbs[i].set_lit(_is_lit(i))
 	var level: Dictionary = levels[level_index]
-	title.text = "Desafio • Fase %d" % level["id"] if State.daily_mode else "Fase %d" % level["id"]
+	var phase_title := String(level.get("title", "Fase %d" % int(level["id"])))
+	title.text = "Desafio • %s" % phase_title if State.daily_mode else phase_title
 	var compact := get_viewport_rect().size.x < 400.0
 	title.add_theme_font_size_override("font_size", 28 if compact else 36)
 	info.add_theme_font_size_override("font_size", 18 if compact else 24)
@@ -280,7 +281,7 @@ func _on_solved() -> void:
 	if is_instance_valid(_win):
 		return
 	_win = WinPanel.new()
-	_win.setup(moves, int(level["par"]), earned, level_index + 1 < levels.size() and not State.daily_mode, State.daily_mode)
+	_win.setup(moves, int(level["par"]), earned, level_index + 1 < levels.size() and not State.daily_mode, State.daily_mode, String(level.get("easter_egg", "")))
 	_win.chosen.connect(_on_win_choice)
 	add_child(_win)
 

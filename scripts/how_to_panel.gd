@@ -24,6 +24,7 @@ func setup(world: Dictionary, level: Dictionary) -> void:
 
 
 func _ready() -> void:
+	var viewport_size := get_viewport_rect().size
 	if _world.is_empty():
 		_world = State.worlds[0]
 	if _demo_level.is_empty():
@@ -42,20 +43,25 @@ func _ready() -> void:
 		safe_margin.add_theme_constant_override("margin_" + side, 12)
 	add_child(safe_margin)
 	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	safe_margin.add_child(scroll)
+	var centered_content := CenterContainer.new()
+	centered_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	centered_content.custom_minimum_size.y = maxf(0.0, viewport_size.y - 24.0)
+	scroll.add_child(centered_content)
 
 	var panel := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Palette.OFF
 	sb.set_corner_radius_all(32)
-	var viewport_size := get_viewport_rect().size
 	var compact := viewport_size.x < 400.0
 	sb.set_content_margin_all(int(clampf(viewport_size.x * 0.055, 14.0, 28.0)))
 	panel.add_theme_stylebox_override("panel", sb)
 	panel.custom_minimum_size = Vector2(minf(460.0, viewport_size.x - 48.0), 0)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(panel)
+	centered_content.add_child(panel)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10 if compact else 14)

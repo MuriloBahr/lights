@@ -8,16 +8,18 @@ var _par := 0
 var _earned := 0
 var _has_next := false
 var _daily := false
+var _easter_egg := ""
 var _counter := Ui.label("", 30, Palette.BASE)
 var _bulbs: Array[Bulb] = []
 
 
-func setup(moves: int, par: int, earned: int, has_next: bool, daily := false) -> void:
+func setup(moves: int, par: int, earned: int, has_next: bool, daily := false, easter_egg := "") -> void:
 	_moves = moves
 	_par = par
 	_earned = earned
 	_has_next = has_next
 	_daily = daily
+	_easter_egg = easter_egg
 
 
 func _ready() -> void:
@@ -51,6 +53,8 @@ func _ready() -> void:
 
 	box.add_child(Ui.label("Desafio concluído!" if _daily else "Resolvido!", 30 if compact else (42 if _daily else 48), Palette.BULBS[1]))
 	box.add_child(Ui.label(["Boa!", "Muito bem!", "Perfeito!"][_earned - 1], 22 if compact else 28, Palette.BASE))
+	if not _easter_egg.is_empty():
+		box.add_child(Ui.label(_easter_egg, 48 if compact else 64, Palette.BULBS[0]))
 	box.add_child(_bulb_row(72.0 if compact else 96.0))
 	box.add_child(_counter)
 	_counter.add_theme_font_size_override("font_size", 23 if compact else 30)

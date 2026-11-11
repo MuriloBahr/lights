@@ -28,6 +28,8 @@ GOALS = {
     "quadrado": ["####", "#..#", "#..#", "####"],
     "diagonal": ["#...", ".#..", "..#.", "...#"],
     "xis4": ["#..#", ".##.", ".##.", "#..#"],
+    "letra_k": ["#..#", "#.#.", "##..", "#.#."],
+    "calendario": ["####", "#.#.", "####", "#..#"],
     "carinha": [".#.#.", ".#.#.", ".....", "#...#", ".###."],
     "coracao": [".#.#.", "#####", "#####", ".###.", "..#.."],
     "casa": ["..#..", ".###.", "#####", "#.#.#", "#.#.#"],
@@ -60,7 +62,11 @@ PLAN = (
     + [(7, "plus", 3, 1, 2, "none", "todas")] * 2
     + [(7, "plus", 3, 1, 2, "none", g) for g in ("mais", "cantos", "moldura", "xis3")] * 2
     + [(7, "plus", 3, 1, 2, "none", "mais")] * 2
-    + [(7, "plus", 4, 1, 2, "none", g) for g in ("quadrado", "diagonal", "xis4")] * 4
+    + [(7, "plus", 4, 1, 2, "none", "quadrado")] * 4
+    + [(7, "plus", 4, 1, 2, "none", "diagonal")] * 4
+    + [(7, "plus", 4, 1, 2, "none", "xis4")] * 2
+    + [(7, "plus", 4, 1, 1, "none", "letra_k", "K")]
+    + [(7, "plus", 4, 1, 1, "none", "calendario", "04 · 10")]
     + [(2, "x", 3, 1, 2)] * 6
     + [(2, "x", 4, 2, 3)] * 6
     + [(3, "plus", "cruz3", 1, 2)] * 3
@@ -209,6 +215,7 @@ def main():
         world, shape, key, lo, hi = entry[:5]
         effect = entry[5] if len(entry) > 5 else "none"
         goal_name = entry[6] if len(entry) > 6 else None
+        easter_egg = entry[7] if len(entry) > 7 else ""
         built = [make_level(shape, key, lo, hi, rng, seen, effect, goal_name) for _ in run]
         built.sort(key=lambda b: len(b[3]))
         for n, cells, state, solution, effect, goal in built:
@@ -223,6 +230,10 @@ def main():
                 level["mask"] = [1 if i in cells else 0 for i in range(n * n)]
             if goal:
                 level["goal"] = [(goal >> i) & 1 for i in range(n * n)]
+            if easter_egg:
+                level["easter_egg"] = easter_egg
+                if easter_egg == "04 · 10":
+                    level["title"] = easter_egg
             if level["id"] == 1:
                 level["hint"] = "Vamos juntos: toque na lâmpada acesa para ver as vizinhas mudarem."
             elif level["id"] <= 3:

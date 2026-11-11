@@ -1,36 +1,38 @@
 # Lights
 
-Lights é um jogo de lógica feito com Godot 4.7 e GDScript. O objetivo é apagar todas as lâmpadas de cada fase usando o menor número de toques possível. O projeto está pensado para celulares, com orientação vertical e interface que se adapta a diferentes tamanhos de tela.
+Lights é um jogo de lógica para celulares, feito com Godot 4.7 e GDScript. Em cada fase, os toques mudam o estado de algumas lâmpadas. O objetivo é apagar todas ou, nas fases de Pintura, formar o desenho indicado.
 
 ## Como jogar
 
-- Toque em uma lâmpada para alternar seu estado e o das lâmpadas afetadas pela regra do mundo.
-- Apague todas as lâmpadas para concluir a fase.
+- Toque em uma lâmpada para alternar seu estado e o das lâmpadas afetadas pela regra da fase.
+- Apague todas as lâmpadas ou forme o desenho de referência para concluir a fase.
 - Use **Desfazer** para reverter a última jogada ou **Reiniciar** para começar de novo.
-- **Dica** pulsa uma jogada da solução. Cada fase oferece uma dica por toque mínimo (`par`); dicas não usadas não são gastas e reiniciar restaura a quantidade.
-- Tente resolver com poucos toques para ganhar até três lâmpadas de recompensa. As fases são desbloqueadas em sequência.
+- **Dica** destaca uma jogada da solução. A quantidade disponível aparece junto ao botão e é restaurada ao reiniciar.
+- Resolver com poucos toques rende até três lâmpadas de recompensa. As fases são desbloqueadas em sequência.
 
 ## Mundos e fases
 
-O jogo tem 90 fases em sete mundos, com regras e identidade visual próprias:
+O jogo tem 90 fases em sete mundos, nesta ordem de progressão:
 
 1. **Clássico** — o toque afeta a lâmpada selecionada e as vizinhas em cruz.
-2. **Diagonais** — o toque afeta as diagonais.
-3. **Formas** — algumas posições da grade não têm lâmpadas.
-4. **Mistura** — combina regras, formas e tamanhos de grade.
-5. **Espelho** — o toque também ecoa na posição oposta do tabuleiro.
-6. **Raio** — o toque afeta a fileira e a coluna.
-7. **Pintura** — acenda e apague luzes para formar o desenho mostrado.
+2. **Pintura** — alterne as luzes até formar o desenho mostrado.
+3. **Diagonais** — o toque afeta as diagonais.
+4. **Formas** — algumas posições da grade não têm lâmpadas.
+5. **Mistura** — alterna padrões de cruz, diagonais e tabuleiros com formatos diferentes.
+6. **Espelho** — o toque também ecoa na posição oposta do tabuleiro.
+7. **Raio** — o toque afeta a fileira e a coluna.
 
-Ao entrar em um mundo pela primeira vez, uma demonstração interativa apresenta sua regra. Pintura agora tem 24 fases, com mais desenhos para montar. A progressão continua acolhedora: as fases usam grades de até 4×4 e soluções de no máximo três toques. As primeiras fases do mundo Clássico ensinam a regra com uma jogada; depois, novas regras e formas aparecem em tabuleiros pequenos.
+Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite experimentar a regra. Pintura tem 24 fases. A progressão usa grades de até 4×4 e soluções de no máximo três toques; as seis primeiras fases de Clássico são resolvidas com um toque.
 
 ## Recursos
 
-- Fundos temáticos por mundo, lâmpadas coloridas, animações e efeitos visuais ao jogar, receber uma dica e concluir uma fase.
+- Fundos pastel com detalhes próprios por fase, lâmpadas com carinhas, animações e efeitos visuais.
+- Transição animada ao iniciar o jogo, com lâmpadas subindo pela tela.
 - Música, efeitos sonoros e vibração, com controles de preferência nas configurações.
+- Tutoriais interativos por mundo e um guia **Como jogar** nas configurações.
 - Desafio diário sem cronômetro. A conclusão do dia é salva separadamente e não altera o progresso das fases normais.
 - Progresso, recompensas, configurações e conclusão diária salvos localmente em `user://save.json`.
-- Layout responsivo para telas estreitas e altas: grade, botões, painéis e seleção de fases ajustam suas dimensões; painéis de ajuda podem rolar.
+- Layout responsivo para telas estreitas e altas, com painéis de ajuda roláveis e seleção de fases compatível com toque.
 - Orientação vertical configurada para celulares Android e iOS.
 
 ## Tecnologias e estrutura
@@ -57,8 +59,11 @@ scripts/
   state.gd               dados compartilhados, salvamento e transições
   bulb.gd                lâmpadas, animações e desenho
   world_backdrop.gd      fundos temáticos
+  goal_preview.gd        miniatura do desenho-alvo
   how_to_panel.gd        demonstrações interativas
   settings_panel.gd      configurações
+  menu.gd                tela inicial e animação de início
+  gear_button.gd         botão de configurações
   win_panel.gd           resultado da fase
   sfx.gd                 música, efeitos sonoros e vibração
   ui.gd                  elementos reutilizáveis de interface
@@ -80,7 +85,7 @@ Python não é necessário para executar o jogo. Para regenerar `data/levels.jso
 python tools\generate_levels.py
 ```
 
-O gerador parte de uma grade apagada, cria fases solucionáveis e grava a quantidade mínima de jogadas e uma sequência de solução. O formato de cada fase inclui `id`, `world`, `size`, `grid`, `par` e `solution`; `shape`, `mask` e `effect` são opcionais.
+O gerador cria fases solucionáveis e grava a quantidade mínima de jogadas e uma sequência de solução. Cada fase inclui `id`, `world`, `size`, `grid`, `par` e `solution`. `shape`, `mask`, `effect`, `goal` e `hint` são opcionais. `goal` descreve o desenho-alvo das fases de Pintura.
 
 ## Exportar para Android
 
@@ -96,7 +101,7 @@ Depois de mudar o projeto, é necessário exportar novamente e instalar a nova b
 
 ## Dados e arquitetura
 
-`data/levels.json` é a fonte dos mundos e das fases. A grade é representada em ordem de linhas, com `1` para lâmpada acesa e `0` para apagada. `par` indica o mínimo de toques; `solution` contém índices de lâmpadas que resolvem a fase. Efeitos especiais podem ser descritos por `effect` (`mirror` ou `line`), e `shape` define o padrão de vizinhança (`plus` ou `x`).
+`data/levels.json` é a fonte dos mundos e das fases. A grade é representada em ordem de linhas, com `1` para lâmpada acesa e `0` para apagada. `par` indica o mínimo de toques; `solution` contém os índices das lâmpadas da solução. `goal` define o desenho-alvo, `mask` define quais posições têm lâmpadas, `effect` pode ser `mirror` ou `line`, e `shape` define o padrão de vizinhança (`plus` ou `x`).
 
 `Board` mantém a lógica separada da interface e emite os sinais `changed` e `solved`. A tela de jogo reage a esses sinais para atualizar as lâmpadas, efeitos e progresso. O progresso fica no armazenamento local do dispositivo, não no repositório.
 

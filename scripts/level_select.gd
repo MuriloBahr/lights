@@ -48,15 +48,17 @@ func _ready() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.scroll_deadzone = 12
+	scroll.scroll_deadzone = 5
 	root.add_child(scroll)
 
 	var center := CenterContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.mouse_filter = Control.MOUSE_FILTER_PASS
 	scroll.add_child(center)
 
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", CARD_GAP)
+	_list.mouse_filter = Control.MOUSE_FILTER_PASS
 	center.add_child(_list)
 	get_viewport().size_changed.connect(_rebuild_level_list)
 	_rebuild_level_list()
@@ -101,6 +103,7 @@ func _world_header(world: Dictionary) -> PanelContainer:
 	var color: Color = Palette.BULBS[int(world["color"])]
 	var compact := get_viewport_rect().size.x < 400.0
 	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(color, 0.1)
 	style.border_color = Color(color, 0.56)
@@ -113,10 +116,14 @@ func _world_header(world: Dictionary) -> PanelContainer:
 	panel.add_theme_stylebox_override("panel", style)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.add_child(box)
-	box.add_child(Ui.label(str(world["name"]), 28 if compact else 34, color))
+	var world_name := Ui.label(str(world["name"]), 28 if compact else 34, color)
+	world_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(world_name)
 	var rule := Ui.label(str(world["rule"]), 17 if compact else 20, Palette.BASE)
 	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(rule)
 	return panel
 
@@ -124,6 +131,7 @@ func _world_header(world: Dictionary) -> PanelContainer:
 func _new_grid() -> GridContainer:
 	var grid := GridContainer.new()
 	grid.columns = _columns
+	grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	grid.add_theme_constant_override("h_separation", CARD_GAP)
 	grid.add_theme_constant_override("v_separation", CARD_GAP)
 	return grid

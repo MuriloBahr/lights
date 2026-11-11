@@ -20,6 +20,8 @@ var _win: WinPanel
 var _hint_button: Button
 var _hints_used := 0
 var _combo_streak := 0
+var _goal: Array = []
+var _preview := GoalPreview.new()
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -57,6 +59,7 @@ func _build_ui() -> void:
 	_root.add_child(info)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_root.add_child(hint)
+	_root.add_child(_preview)
 
 	_center = CenterContainer.new()
 	_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -132,9 +135,11 @@ func _load(index: int) -> void:
 	_hints_used = 0
 	_combo_streak = 0
 	var level: Dictionary = levels[index]
+	_goal = level.get("goal", [])
+	_preview.setup(level)
 	backdrop.setup(int(level["world"]), int(level["id"]))
 	_build_grid(level)
-	board.load_level(level)
+	board.load_level(_board_level(level))
 	_show_world_intro_if_needed(level)
 
 
@@ -143,9 +148,9 @@ func _show_world_intro_if_needed(level: Dictionary) -> void:
 	var first_in_world := level_index == 0 or int(levels[level_index - 1]["world"]) != world_id
 	if not first_in_world:
 		return
-	var setting_key := "seen_howto"
+	var setting_key := "seen_howto_v2"
 	if world_id != 1:
-		setting_key = "seen_world_intro_%d" % world_id
+		setting_key = "seen_world_intro_v2_%d" % world_id
 	if bool(State.settings.get(setting_key, false)):
 		return
 	State.set_setting(setting_key, true)
@@ -185,7 +190,7 @@ func _build_grid(level: Dictionary) -> void:
 
 func _refresh() -> void:
 	for i in bulbs.size():
-		bulbs[i].set_lit(board.cells[i] == 1)
+		bulbs[i].set_lit(_is_lit(i))
 	var level: Dictionary = levels[level_index]
 	title.text = "Desafio • Fase %d" % level["id"] if State.daily_mode else "Fase %d" % level["id"]
 	var compact := get_viewport_rect().size.x < 400.0
@@ -194,7 +199,7 @@ func _refresh() -> void:
 	hint.add_theme_font_size_override("font_size", 17 if compact else 22)
 	var world: Dictionary = State.worlds[int(level["world"]) - 1]
 	title.add_theme_color_override("font_color", Palette.BULBS[int(world["color"])])
-	var hint_count := int(level["par"])
+	var hint_count := int(level["par"]) - 1
 	var hints_left := maxi(0, hint_count - _hints_used)
 	info.text = "Toques %d/%d • Dicas %d/%d" % [board.moves.size(), level["par"], hints_left, hint_count]
 	_hint_button.text = "Dica (%d)" % hints_left
@@ -218,7 +223,7 @@ func _on_bulb_pressed(x: int, y: int) -> void:
 	if _lit_count() < lit_before:
 		_combo_streak += 1
 		if _combo_streak >= 2:
-			State.sfx.combo(_combo_streak)
+			State.sfx.toggle(_is_lit(y * board.size + x))
 			hint.text = "Combo x%d! Mais luzes apagando!" % _combo_streak
 	else:
 		_combo_streak = 0
@@ -300,3 +305,19 @@ func _stars(moves: int, par: int) -> int:
 func _back() -> void:
 	State.daily_mode = false
 	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+
+
+func _is_lit(i: int) -> bool:
+	var goal_bit := 0 if _goal.is_empty() else int(_goal[i])
+	return (int(board.cells[i]) ^ goal_bit) == 1
+
+
+func _board_level(level: Dictionary) -> Dictionary:
+	if _goal.is_empty():
+		return level
+	var shifted := level.duplicate()
+	var diff: Array = []
+	for i in _goal.size():
+		diff.append(int(level["grid"][i]) ^ int(_goal[i]))
+	shifted["grid"] = diff
+	return shifted

@@ -2,7 +2,7 @@ class_name Sfx
 extends Node
 
 const MUSIC_PATH := "res://assets/music/theme.mp3"
-const MUSIC_DB := -20.0
+const MUSIC_DB := -10.0
 const GAME_DUCK_DB := 8.0
 
 var vibration := true

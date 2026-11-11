@@ -6,7 +6,7 @@ var level_id := 0
 
 
 func setup(id: int, phase_id := 0) -> void:
-	world_id = clampi(id, 1, 6)
+	world_id = clampi(id, 1, 7)
 	level_id = phase_id
 	queue_redraw()
 
@@ -25,7 +25,7 @@ func _notification(what: int) -> void:
 func _draw() -> void:
 	var top: Color
 	var bottom: Color
-	var accent: Color = Palette.BULBS[world_id - 1]
+	var accent: Color = Palette.BULBS[posmod(world_id - 1, Palette.BULBS.size())]
 	match world_id:
 		1:
 			top = Color("201b3e")
@@ -45,13 +45,17 @@ func _draw() -> void:
 		6:
 			top = Color("3b263c")
 			bottom = Color("714454")
+		7:
+			top = Color("49304c")
+			bottom = Color("925b79")
 		_:
 			top = Palette.BG
 			bottom = Palette.BG
 
-	var tint := float(level_id % 6) * 0.012
-	top = top.lerp(accent, tint)
-	bottom = bottom.lerp(accent, tint * 1.5)
+	var level_washes := [Color("ffd9e8"), Color("c8ecff"), Color("ddf6c8"), Color("ffe4bd")]
+	var wash: Color = level_washes[posmod(level_id, level_washes.size())]
+	top = top.lerp(wash, 0.10).lerp(accent, float(level_id % 6) * 0.012)
+	bottom = bottom.lerp(wash, 0.16).lerp(accent, float(level_id % 6) * 0.018)
 	var bands := maxi(1, ceili(size.y / 32.0))
 	for i in bands:
 		var y0 := size.y * float(i) / bands
@@ -61,6 +65,7 @@ func _draw() -> void:
 	draw_circle(Vector2(size.x * 0.12, size.y * 0.18), size.x * 0.48, Color(accent, 0.045))
 	draw_circle(Vector2(size.x * 0.9, size.y * 0.82), size.x * 0.42, Color(accent, 0.035))
 	_draw_world_motif(accent)
+	_draw_cute_decor(accent)
 	_draw_sparkles(accent)
 
 
@@ -98,6 +103,56 @@ func _draw_world_motif(accent: Color) -> void:
 				var angle := TAU * float(i) / 12.0
 				var direction := Vector2(cos(angle), sin(angle))
 				draw_line(origin + direction * w * 0.18, origin + direction * w * 0.78, Color(accent, 0.08), 2.0)
+		7:
+			for i in 6:
+				var center := Vector2(w * (0.12 + 0.16 * i), h * (0.16 + 0.04 * (i % 2)))
+				draw_circle(center + Vector2(-6, 0), 12.0, Color(accent, 0.10))
+				draw_circle(center + Vector2(6, 0), 12.0, Color(accent, 0.10))
+				draw_colored_polygon(PackedVector2Array([center + Vector2(-17, 3), center + Vector2(17, 3), center + Vector2(0, 23)]), Color(accent, 0.10))
+
+
+func _draw_cute_decor(accent: Color) -> void:
+	var w := size.x
+	var h := size.y
+	if w <= 0.0 or h <= 0.0:
+		return
+	var phase := posmod(level_id, 4)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(level_id) * 731 + world_id * 97
+	for i in 14:
+		var center := Vector2(rng.randf_range(0.04, 0.96) * w, rng.randf_range(0.07, 0.94) * h)
+		var radius := rng.randf_range(3.0, 9.0)
+		draw_circle(center, radius, Color(Palette.FACE, 0.045))
+		if i % 3 == phase % 3:
+			_draw_sparkle(center, radius * 0.7, Color(accent, 0.22))
+
+	var side := -1.0 if phase % 2 == 0 else 1.0
+	var buddy_a := Vector2(w * (0.10 if side < 0.0 else 0.90), h * (0.25 + 0.035 * phase))
+	var buddy_b := Vector2(w * (0.88 if side < 0.0 else 0.12), h * (0.72 - 0.025 * phase))
+	_draw_lamp_buddy(buddy_a, minf(w * 0.047, 23.0), accent)
+	if phase == 1 or phase == 3:
+		_draw_lamp_buddy(buddy_b, minf(w * 0.035, 17.0), Palette.BULBS[(world_id + 2) % Palette.BULBS.size()])
+
+	var hill_color := Color(accent, 0.045)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(0, h * 0.94), Vector2(w * 0.22, h * 0.89), Vector2(w * 0.43, h * 0.95),
+		Vector2(w * 0.67, h * 0.90), Vector2(w, h * 0.95), Vector2(w, h), Vector2(0, h),
+	]), hill_color)
+
+
+func _draw_lamp_buddy(center: Vector2, radius: float, color: Color) -> void:
+	draw_circle(center, radius * 1.45, Color(color, 0.045))
+	draw_circle(center, radius, Color(color, 0.16))
+	draw_arc(center, radius, 0.0, TAU, 36, Color(color, 0.22), 1.5, true)
+	draw_circle(center + Vector2(-radius * 0.30, -radius * 0.08), radius * 0.075, Color(Palette.FACE, 0.68))
+	draw_circle(center + Vector2(radius * 0.30, -radius * 0.08), radius * 0.075, Color(Palette.FACE, 0.68))
+	draw_arc(center + Vector2(0, radius * 0.02), radius * 0.27, 0.25, PI - 0.25, 12, Color(Palette.FACE, 0.62), maxf(1.0, radius * 0.065), true)
+	draw_line(center + Vector2(-radius * 0.28, radius * 0.74), center + Vector2(radius * 0.28, radius * 0.74), Color(color, 0.16), 2.0, true)
+
+
+func _draw_sparkle(center: Vector2, radius: float, color: Color) -> void:
+	draw_line(center - Vector2(radius, 0), center + Vector2(radius, 0), color, 1.5, true)
+	draw_line(center - Vector2(0, radius), center + Vector2(0, radius), color, 1.5, true)
 
 
 func _draw_sparkles(accent: Color) -> void:

@@ -1,6 +1,7 @@
 import json
 import random
 from pathlib import Path
+from itertools import groupby
 
 OUT = Path(__file__).resolve().parent.parent / "data" / "levels.json"
 
@@ -19,6 +20,19 @@ MASKS = {
     "anel5": ["#####", "#...#", "#...#", "#...#", "#####"],
 }
 
+GOALS = {
+    "mais": [".#.", "###", ".#."],
+    "cantos": ["#.#", "...", "#.#"],
+    "moldura": ["###", "#.#", "###"],
+    "xis3": ["#.#", ".#.", "#.#"],
+    "quadrado": ["####", "#..#", "#..#", "####"],
+    "diagonal": ["#...", ".#..", "..#.", "...#"],
+    "xis4": ["#..#", ".##.", ".##.", "#..#"],
+    "carinha": [".#.#.", ".#.#.", ".....", "#...#", ".###."],
+    "coracao": [".#.#.", "#####", "#####", ".###.", "..#.."],
+    "casa": ["..#..", ".###.", "#####", "#.#.#", "#.#.#"],
+}
+
 WORLDS = [
     {"id": 1, "name": "Clássico", "color": 0, "rule": "Tocar inverte a lâmpada e as vizinhas em cruz",
      "hint": "Toque numa luz: ela e as vizinhas invertem. Apague todas."},
@@ -32,25 +46,37 @@ WORLDS = [
      "hint": "O toque reverbera no centro: o espelho repete o efeito."},
     {"id": 6, "name": "Raio", "color": 5, "rule": "A energia percorre a linha e a coluna do toque",
      "hint": "A energia dispara em linha reta: a fileira e a coluna também mudam."},
+    {"id": 7, "name": "Pintura", "color": 0, "rule": "Acenda as luzes para formar o desenho",
+     "hint": "Novo objetivo: deixe as luzes iguais à miniatura."},
 ]
 
-# (world, shape, size or mask name, par min, par max, effect)
+# (world, shape, size or mask name, par min, par max, effect, goal)
+# Keep every board small and every solution short. New rules vary the feel,
+# while the player never needs to plan a long sequence just to pass a level.
 PLAN = (
-    [(1, "plus", 3, 1, 1)] * 6 + [(1, "plus", 3, 1, 2)] * 3 + [(1, "plus", 3, 2, 3)] * 3
-    + [(2, "x", 3, 1, 2)] * 3 + [(2, "x", 4, 2, 4)] * 3 + [(2, "x", 5, 3, 6)] * 3 + [(2, "x", 5, 5, 9)] * 3
-    + [
-        (3, "plus", "cruz3", 1, 3), (3, "plus", "anel3", 2, 4), (3, "plus", "cruz3", 2, 3),
-        (3, "plus", "anel3", 3, 5), (3, "plus", "diamante5", 3, 6), (3, "plus", "coracao5", 3, 6),
-        (3, "plus", "ampulheta5", 3, 6), (3, "plus", "casa5", 4, 7), (3, "plus", "anel5", 4, 8),
-        (3, "plus", "diamante5", 5, 9), (3, "plus", "coracao5", 5, 9), (3, "plus", "ampulheta5", 5, 9),
-    ]
-    + [
-        (4, "plus", 5, 6, 10), (4, "x", 5, 5, 9), (4, "plus", "coracao5", 5, 9), (4, "x", "diamante5", 4, 8),
-        (4, "plus", 6, 7, 12), (4, "x", 6, 6, 12), (4, "plus", "ampulheta5", 5, 9), (4, "x", "casa5", 4, 8),
-        (4, "plus", 6, 9, 14), (4, "x", 6, 8, 14), (4, "plus", 6, 11, 16), (4, "plus", 6, 12, 18),
-    ]
-    + [(5, "plus", 3, 1, 2, "mirror")] * 3 + [(5, "x", 4, 2, 4, "mirror")] * 3 + [(5, "plus", 5, 4, 7, "mirror")] * 3
-    + [(6, "plus", 3, 1, 2, "line")] * 3 + [(6, "x", 4, 2, 4, "line")] * 3 + [(6, "plus", 5, 4, 7, "line")] * 3
+    [(1, "plus", 3, 1, 1)] * 6
+    + [(1, "plus", 3, 1, 2)] * 4
+    + [(1, "plus", 3, 2, 3)] * 2
+    + [(7, "plus", 3, 1, 2, "none", "todas")] * 2
+    + [(7, "plus", 3, 1, 2, "none", g) for g in ("mais", "cantos", "moldura", "xis3")] * 2
+    + [(7, "plus", 3, 1, 2, "none", "mais")] * 2
+    + [(7, "plus", 4, 1, 2, "none", g) for g in ("quadrado", "diagonal", "xis4")] * 4
+    + [(2, "x", 3, 1, 2)] * 6
+    + [(2, "x", 4, 2, 3)] * 6
+    + [(3, "plus", "cruz3", 1, 2)] * 3
+    + [(3, "plus", "anel3", 1, 2)] * 3
+    + [(3, "plus", "cruz3", 2, 3)] * 3
+    + [(3, "plus", "anel3", 2, 3)] * 3
+    + [(4, "plus", 3, 1, 2)] * 3
+    + [(4, "x", 3, 1, 2)] * 3
+    + [(4, "plus", "cruz3", 1, 2)] * 3
+    + [(4, "x", "anel3", 1, 2)] * 3
+    + [(5, "plus", 3, 1, 2, "mirror")] * 3
+    + [(5, "x", 3, 1, 2, "mirror")] * 3
+    + [(5, "plus", 3, 2, 3, "mirror")] * 3
+    + [(6, "plus", 3, 1, 2, "line")] * 3
+    + [(6, "x", 3, 1, 2, "line")] * 3
+    + [(6, "plus", 3, 2, 3, "line")] * 3
 )
 
 
@@ -139,8 +165,20 @@ def solve(cells, eff, state):
     return [cells[k] for k in range(m) if best >> k & 1]
 
 
-def make_level(shape, key, lo, hi, rng, seen, effect="none"):
+def goal_state(n, cells, name):
+    if name is None:
+        return 0
+    if name == "todas":
+        return sum(1 << c for c in cells)
+    rows = GOALS[name]
+    state = sum(1 << (y * n + x) for y in range(n) for x in range(n) if rows[y][x] == "#")
+    assert all(i in cells for i in range(n * n) if state >> i & 1)
+    return state
+
+
+def make_level(shape, key, lo, hi, rng, seen, effect="none", goal_name=None):
     n, cells = geometry(key)
+    goal = goal_state(n, cells, goal_name)
     eff = effects(n, cells, SHAPES[shape], effect)
     for relax in range(8):
         for _ in range(3000):
@@ -148,7 +186,7 @@ def make_level(shape, key, lo, hi, rng, seen, effect="none"):
             state = 0
             for t in rng.sample(cells, k):
                 state ^= eff[t]
-            if state == 0 or (shape, key, effect, state) in seen:
+            if state == 0 or (shape, key, effect, goal, state) in seen:
                 continue
             sol = solve(cells, eff, state)
             if sol is None or not lo - relax <= len(sol) <= hi + relax:
@@ -157,9 +195,9 @@ def make_level(shape, key, lo, hi, rng, seen, effect="none"):
             for t in sol:
                 check ^= eff[t]
             assert check == state
-            seen.add((shape, key, effect, state))
-            return n, cells, state, sol, effect
-    raise RuntimeError(f"sem fase para {shape} {key} {lo}-{hi} {effect}")
+            seen.add((shape, key, effect, goal, state))
+            return n, cells, state ^ goal, sol, effect, goal
+    raise RuntimeError(f"sem fase para {shape} {key} {lo}-{hi} {effect} {goal_name}")
 
 
 def main():
@@ -167,29 +205,36 @@ def main():
     seen = set()
     levels = []
     first = set()
-    for entry in PLAN:
+    for entry, run in groupby(PLAN):
         world, shape, key, lo, hi = entry[:5]
         effect = entry[5] if len(entry) > 5 else "none"
-        n, cells, state, solution, effect = make_level(shape, key, lo, hi, rng, seen, effect)
-        level = {"id": len(levels) + 1, "world": world, "size": n,
-                 "grid": [(state >> i) & 1 for i in range(n * n)], "par": len(solution),
-                 "solution": solution}
-        if effect != "none":
-            level["effect"] = effect
-        if shape != "plus":
-            level["shape"] = shape
-        if len(cells) != n * n:
-            level["mask"] = [1 if i in cells else 0 for i in range(n * n)]
-        if level["id"] == 1:
-            level["hint"] = "Vamos juntos: toque na lâmpada acesa para ver as vizinhas mudarem."
-        elif level["id"] <= 3:
-            level["hint"] = "Toque na lâmpada e observe a cruz. Não há limite de tentativas!"
-        elif level["id"] <= 6:
-            level["hint"] = "Apague todas as luzes. Use Desfazer ou Dica quando quiser."
-        if world not in first:
-            first.add(world)
-            level.setdefault("hint", WORLDS[world - 1]["hint"])
-        levels.append(level)
+        goal_name = entry[6] if len(entry) > 6 else None
+        built = [make_level(shape, key, lo, hi, rng, seen, effect, goal_name) for _ in run]
+        built.sort(key=lambda b: len(b[3]))
+        for n, cells, state, solution, effect, goal in built:
+            level = {"id": len(levels) + 1, "world": world, "size": n,
+                     "grid": [(state >> i) & 1 for i in range(n * n)], "par": len(solution),
+                     "solution": solution}
+            if effect != "none":
+                level["effect"] = effect
+            if shape != "plus":
+                level["shape"] = shape
+            if len(cells) != n * n:
+                level["mask"] = [1 if i in cells else 0 for i in range(n * n)]
+            if goal:
+                level["goal"] = [(goal >> i) & 1 for i in range(n * n)]
+            if level["id"] == 1:
+                level["hint"] = "Vamos juntos: toque na lâmpada acesa para ver as vizinhas mudarem."
+            elif level["id"] <= 3:
+                level["hint"] = "Toque na lâmpada e observe a cruz. Não há limite de tentativas!"
+            elif level["id"] <= 6:
+                level["hint"] = "Apague todas as luzes. Use Desfazer ou Dica quando quiser."
+            if world not in first:
+                first.add(world)
+                level.setdefault("hint", WORLDS[world - 1]["hint"])
+            elif goal:
+                level["hint"] = "Forme o desenho da miniatura."
+            levels.append(level)
 
     worlds = [{k: v for k, v in w.items() if k != "hint"} for w in WORLDS]
     OUT.parent.mkdir(parents=True, exist_ok=True)

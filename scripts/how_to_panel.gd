@@ -7,16 +7,20 @@ var _msg := Ui.label("", 26, Palette.BULBS[1])
 var _world: Dictionary = {}
 var _demo_level: Dictionary = {}
 var _is_world_intro := false
+var _demo_goal: Array = []
+var _goal_preview := GoalPreview.new()
 
 
 func setup(world: Dictionary, level: Dictionary) -> void:
 	_is_world_intro = true
 	_world = world
 	_demo_level = level.duplicate(true)
-	var demo_size := int(_demo_level["size"])
-	_demo_level["grid"] = []
-	for i in demo_size * demo_size:
-		_demo_level["grid"].append(0)
+	_demo_goal = _demo_level.get("goal", [])
+	if _demo_goal.is_empty():
+		var demo_size := int(_demo_level["size"])
+		_demo_level["grid"] = []
+		for i in demo_size * demo_size:
+			_demo_level["grid"].append(0)
 
 
 func _ready() -> void:
@@ -64,9 +68,12 @@ func _ready() -> void:
 	else:
 		box.add_child(_text(str(_world["rule"])))
 	box.add_child(_demo_grid())
+	if not _demo_goal.is_empty():
+		_goal_preview.setup(_demo_level)
+		box.add_child(_goal_preview)
 	_msg.add_theme_font_size_override("font_size", 20 if compact else 26)
 	_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_msg.text = "Experimente no tabuleiro: toque para ver a regra em ação. Isso não gasta dicas."
+	_msg.text = "Tente deixar o tabuleiro igual ao desenho. Isso não gasta dicas." if not _demo_goal.is_empty() else "Experimente no tabuleiro: toque para ver a regra em ação. Isso não gasta dicas."
 	box.add_child(_msg)
 	if world_id == 1:
 		box.add_child(_text("Apague todas as luzes com o mínimo de toques. Quanto menos toques, mais lâmpadas você ganha."))
@@ -91,7 +98,14 @@ func _ready() -> void:
 
 	board.changed.connect(_refresh)
 	board.solved.connect(_on_solved)
-	board.load_level(_demo_level)
+	var board_level := _demo_level
+	if not _demo_goal.is_empty():
+		board_level = _demo_level.duplicate(true)
+		var difference: Array = []
+		for i in _demo_goal.size():
+			difference.append(int(_demo_level["grid"][i]) ^ int(_demo_goal[i]))
+		board_level["grid"] = difference
+	board.load_level(board_level)
 	_animate(panel)
 
 
@@ -127,7 +141,7 @@ func _demo_grid() -> Control:
 
 
 func _tap(x: int, y: int) -> void:
-	_msg.text = "Viu como a regra muda as luzes? Toque em Rever efeito para testar de novo."
+	_msg.text = "Boa! Continue até formar o desenho." if not _demo_goal.is_empty() else "Viu como a regra muda as luzes? Toque em Rever efeito para testar de novo."
 	board.toggle(x, y)
 	State.sfx.toggle(board.get_cell(x, y) == 1)
 	for i in board.last_touched.size():
@@ -138,7 +152,8 @@ func _tap(x: int, y: int) -> void:
 
 func _refresh() -> void:
 	for i in _bulbs.size():
-		_bulbs[i].set_lit(board.cells[i] == 1)
+		var goal_bit := 0 if _demo_goal.is_empty() else int(_demo_goal[i])
+		_bulbs[i].set_lit((int(board.cells[i]) ^ goal_bit) == 1)
 
 
 func _on_solved() -> void:
@@ -150,7 +165,7 @@ func _reset_demo() -> void:
 	board.reset()
 	for bulb in _bulbs:
 		bulb.play_effect(0.0)
-	_msg.text = "Experimente no tabuleiro: toque para ver a regra em ação. Isso não gasta dicas."
+	_msg.text = "Tente deixar o tabuleiro igual ao desenho. Isso não gasta dicas." if not _demo_goal.is_empty() else "Experimente no tabuleiro: toque para ver a regra em ação. Isso não gasta dicas."
 
 
 func _animate(panel: Control) -> void:

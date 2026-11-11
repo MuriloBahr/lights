@@ -12,7 +12,7 @@ Lights é um jogo de lógica feito com Godot 4.7 e GDScript. O objetivo é apaga
 
 ## Mundos e fases
 
-O jogo tem 66 fases em seis mundos, com regras e identidade visual próprias:
+O jogo tem 90 fases em sete mundos, com regras e identidade visual próprias:
 
 1. **Clássico** — o toque afeta a lâmpada selecionada e as vizinhas em cruz.
 2. **Diagonais** — o toque afeta as diagonais.
@@ -20,8 +20,9 @@ O jogo tem 66 fases em seis mundos, com regras e identidade visual próprias:
 4. **Mistura** — combina regras, formas e tamanhos de grade.
 5. **Espelho** — o toque também ecoa na posição oposta do tabuleiro.
 6. **Raio** — o toque afeta a fileira e a coluna.
+7. **Pintura** — acenda e apague luzes para formar o desenho mostrado.
 
-Antes da primeira fase de cada mundo, uma demonstração interativa apresenta sua regra. As seis primeiras fases do mundo Clássico são introduções de uma jogada, e a dificuldade aumenta gradualmente nos mundos seguintes.
+Ao entrar em um mundo pela primeira vez, uma demonstração interativa apresenta sua regra. Pintura agora tem 24 fases, com mais desenhos para montar. A progressão continua acolhedora: as fases usam grades de até 4×4 e soluções de no máximo três toques. As primeiras fases do mundo Clássico ensinam a regra com uma jogada; depois, novas regras e formas aparecem em tabuleiros pequenos.
 
 ## Recursos
 

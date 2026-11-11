@@ -3,6 +3,8 @@ extends Node
 const LEVELS_PATH := "res://data/levels.json"
 const SAVE_PATH := "user://save.json"
 const FADE_TIME := 0.25
+const LEVEL_SAVE_VERSION := 2
+const INSERTED_PAINTING_LEVELS := 12
 
 var levels: Array = []
 var worlds: Array = []
@@ -101,6 +103,14 @@ func _read() -> void:
 		stars = parsed.get("stars", {})
 		daily_completed = parsed.get("daily_completed", {})
 		settings.merge(parsed.get("settings", {}), true)
+		if int(parsed.get("level_save_version", 1)) < LEVEL_SAVE_VERSION:
+			var shifted_stars := {}
+			for key in stars:
+				var id := int(key)
+				var shifted_id := id + INSERTED_PAINTING_LEVELS if id >= 25 else id
+				shifted_stars[str(shifted_id)] = stars[key]
+			stars = shifted_stars
+			_write()
 
 
 func _today_key() -> String:
@@ -110,4 +120,4 @@ func _today_key() -> String:
 
 func _write() -> void:
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify({"stars": stars, "daily_completed": daily_completed, "settings": settings}))
+	f.store_string(JSON.stringify({"level_save_version": LEVEL_SAVE_VERSION, "stars": stars, "daily_completed": daily_completed, "settings": settings}))

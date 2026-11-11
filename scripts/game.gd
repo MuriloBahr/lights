@@ -27,6 +27,7 @@ var _selected_move_index := -1
 var _selected_move_cells: Array[int] = []
 var _selected_move_hint := ""
 var _selected_move_hint_active := false
+var _pulsing_bulb_index := -1
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -162,19 +163,20 @@ func _load(index: int) -> void:
 	backdrop.setup(int(level["world"]), int(level["id"]), State.visual_theme())
 	_build_grid(level)
 	board.load_level(_board_level(level))
-	_show_world_intro_if_needed(level)
+	if not _show_world_intro_if_needed(level):
+		_pulse_guided_move()
 
 
-func _show_world_intro_if_needed(level: Dictionary) -> void:
+func _show_world_intro_if_needed(level: Dictionary) -> bool:
 	var world_id := int(level["world"])
 	var first_in_world := level_index == 0 or int(levels[level_index - 1]["world"]) != world_id
 	if not first_in_world:
-		return
+		return false
 	var setting_key := "seen_howto_v2"
 	if world_id != 1:
 		setting_key = "seen_world_intro_v2_%d" % world_id
 	if bool(State.settings.get(setting_key, false)):
-		return
+		return false
 	State.set_setting(setting_key, true)
 	var demo_level := level
 	if world_id == 4:
@@ -184,11 +186,14 @@ func _show_world_intro_if_needed(level: Dictionary) -> void:
 				break
 	var panel := HowToPanel.new()
 	panel.setup(State.worlds[world_id - 1], demo_level)
+	panel.tree_exited.connect(_pulse_guided_move)
 	add_child(panel)
+	return true
 
 
 func _build_grid(level: Dictionary) -> void:
 	_clear_selected_move()
+	_stop_guided_pulse()
 	for b in bulbs:
 		grid.remove_child(b)
 		b.queue_free()
@@ -225,7 +230,8 @@ func _refresh() -> void:
 	title.add_theme_color_override("font_color", Palette.BULBS[int(world["color"])])
 	var hint_count := int(level["par"]) - 1
 	var hints_left := maxi(0, hint_count - _hints_used)
-	info.text = "Toques %d/%d • Dicas %d/%d • Toque para prévia" % [board.moves.size(), level["par"], hints_left, hint_count]
+	var move_status := "Toques %d/%d • Dicas %d/%d" % [board.moves.size(), level["par"], hints_left, hint_count]
+	info.text = move_status + " • Toque para prévia" if level_index == 0 and not State.daily_mode else move_status
 	_hint_button.text = "Dica (%d)" % hints_left
 	_hint_button.disabled = hints_left == 0
 	hint.text = level.get("hint", "")
@@ -260,12 +266,8 @@ func _select_bulb_move(x: int, y: int) -> void:
 	for cell_index in _selected_move_cells:
 		if cell_index >= 0 and cell_index < bulbs.size():
 			bulbs[cell_index].set_preview(true)
-	if _is_rule_intro_level():
-		for i in _selected_move_cells.size():
-			var cell_index := _selected_move_cells[i]
-			if cell_index >= 0 and cell_index < bulbs.size():
-				bulbs[cell_index].play_effect(minf(float(i) * 0.035, 0.14))
-	hint.text = "Afeta %d lâmpadas. Toque de novo nesta para confirmar; toque fora para cancelar." % _selected_move_cells.size()
+	if level_index == 0 and not State.daily_mode:
+		hint.text = "Afeta %d lâmpadas. Toque de novo nesta para confirmar; toque fora para cancelar." % _selected_move_cells.size()
 	State.sfx.click()
 
 
@@ -282,6 +284,7 @@ func _clear_selected_move() -> void:
 
 
 func _apply_bulb_move(x: int, y: int) -> void:
+	_stop_guided_pulse()
 	var lit_before := _lit_count()
 	board.toggle(x, y)
 	State.sfx.toggle(board.get_cell(x, y) == 1)
@@ -292,15 +295,61 @@ func _apply_bulb_move(x: int, y: int) -> void:
 			hint.text = "Combo x%d! Mais luzes apagando!" % _combo_streak
 	else:
 		_combo_streak = 0
+	if not board.is_solved():
+		_pulse_guided_move()
 
 
 func _is_rule_intro_level() -> bool:
+	if State.daily_mode:
+		return false
 	var current_world := int(levels[level_index]["world"])
 	var phase_in_world := 0
 	for i in level_index + 1:
 		if int(levels[i]["world"]) == current_world:
 			phase_in_world += 1
 	return phase_in_world <= 4
+
+
+func _pulse_guided_move() -> void:
+	if not _is_rule_intro_level():
+		_stop_guided_pulse()
+		return
+	var choices := _remaining_solution_cells()
+	if choices.is_empty():
+		_stop_guided_pulse()
+		return
+	_pulse_target_bulb(choices[0], true)
+
+
+func _pulse_target_bulb(index: int, repeating: bool) -> void:
+	_stop_guided_pulse()
+	if index < 0 or index >= bulbs.size():
+		return
+	_pulsing_bulb_index = index
+	bulbs[index].pulse_hint(repeating)
+
+
+func _stop_guided_pulse() -> void:
+	if _pulsing_bulb_index >= 0 and _pulsing_bulb_index < bulbs.size():
+		bulbs[_pulsing_bulb_index].stop_hint_pulse()
+	_pulsing_bulb_index = -1
+
+
+func _remaining_solution_cells() -> Array[int]:
+	var level: Dictionary = levels[level_index]
+	var remaining := {}
+	for cell in level.get("solution", []):
+		var index := int(cell)
+		remaining[index] = not bool(remaining.get(index, false))
+	for move in board.moves:
+		var index := move.y * board.size + move.x
+		remaining[index] = not bool(remaining.get(index, false))
+	var choices: Array[int] = []
+	for index in remaining:
+		if bool(remaining[index]):
+			choices.append(int(index))
+	choices.sort()
+	return choices
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -332,37 +381,29 @@ func _show_hint() -> void:
 	var level: Dictionary = levels[level_index]
 	if _hints_used >= int(level["par"]):
 		return
-	var remaining := {}
-	for cell in level.get("solution", []):
-		var index := int(cell)
-		remaining[index] = not bool(remaining.get(index, false))
-	for move in board.moves:
-		var index := move.y * board.size + move.x
-		remaining[index] = not bool(remaining.get(index, false))
-
-	var choices: Array[int] = []
-	for index in remaining:
-		if bool(remaining[index]):
-			choices.append(int(index))
+	var choices := _remaining_solution_cells()
 	if choices.is_empty():
 		return
-	choices.sort()
 	_hints_used += 1
-	bulbs[choices[0]].pulse_hint()
+	_pulse_target_bulb(choices[0], false)
 	_refresh()
 	hint.text = "Dica: toque na luz pulsando. Restam %d." % maxi(0, int(level["par"]) - _hints_used)
 
 
 func _restart_level() -> void:
 	_clear_selected_move()
+	_stop_guided_pulse()
 	_hints_used = 0
 	_combo_streak = 0
 	board.reset()
+	_pulse_guided_move()
 
 
 func _undo_move() -> void:
 	_clear_selected_move()
+	_stop_guided_pulse()
 	board.undo()
+	_pulse_guided_move()
 
 
 func _on_solved() -> void:
@@ -410,7 +451,9 @@ func _open_settings() -> void:
 	_clear_selected_move()
 	if is_instance_valid(_settings_panel):
 		return
+	_stop_guided_pulse()
 	_settings_panel = SettingsPanel.new()
+	_settings_panel.tree_exited.connect(_pulse_guided_move)
 	add_child(_settings_panel)
 
 

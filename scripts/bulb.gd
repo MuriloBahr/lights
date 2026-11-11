@@ -50,17 +50,25 @@ func appear(delay: float) -> void:
 	_pop.tween_property(self, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-func pulse_hint() -> void:
+func pulse_hint(repeating := false) -> void:
 	if _hint_tween:
 		_hint_tween.kill()
 	scale = Vector2.ONE
 	modulate = Color.WHITE
 	_hint_tween = create_tween()
-	_hint_tween.set_loops(3)
+	_hint_tween.set_loops(0 if repeating else 3)
 	_hint_tween.tween_property(self, "scale", Vector2(1.16, 1.16), 0.22).set_trans(Tween.TRANS_SINE)
 	_hint_tween.parallel().tween_property(self, "modulate", Color(1.0, 0.86, 0.35), 0.22)
 	_hint_tween.tween_property(self, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_SINE)
 	_hint_tween.parallel().tween_property(self, "modulate", Color.WHITE, 0.22)
+
+
+func stop_hint_pulse() -> void:
+	if _hint_tween and _hint_tween.is_running():
+		_hint_tween.kill()
+	_hint_tween = null
+	scale = Vector2.ONE
+	modulate = Color.WHITE
 
 
 func play_effect(delay: float) -> void:

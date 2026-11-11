@@ -28,7 +28,7 @@ Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite
 
 - Fundos pastel com detalhes próprios por fase, lâmpadas com carinhas, animações e temas visuais desbloqueáveis.
 - Prévia das lâmpadas afetadas antes de confirmar a jogada; tocar fora cancela a seleção.
-- Nas quatro primeiras fases de cada mundo, as lâmpadas afetadas pulsam para ensinar a regra visualmente.
+- Nas quatro primeiras fases de cada mundo, a próxima lâmpada recomendada pulsa para mostrar onde tocar.
 - Transição animada ao iniciar o jogo, com lâmpadas subindo pela tela.
 - Música, efeitos sonoros e vibração, com controles de preferência nas configurações.
 - Tutoriais interativos por mundo e um guia **Como jogar** nas configurações.

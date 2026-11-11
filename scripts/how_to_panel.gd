@@ -83,7 +83,7 @@ func _ready() -> void:
 	if world_id == 1:
 		box.add_child(_text("Toque numa lâmpada para ver o alcance. Ela e as vizinhas de cima, de baixo e dos lados invertem. Toque nela de novo para confirmar; toque fora para cancelar."))
 	else:
-		box.add_child(_text(str(_world["rule"]) + " Toque numa lâmpada para ver o alcance; toque nela de novo para confirmar."))
+		box.add_child(_text(str(_world["rule"])))
 	box.add_child(_demo_grid())
 	if not _demo_goal.is_empty():
 		_goal_preview.setup(_demo_level)
@@ -165,6 +165,7 @@ func _demo_grid() -> Control:
 
 func _tap(x: int, y: int) -> void:
 	var index := y * board.size + x
+	var world_id := int(_world.get("id", 1))
 	if _selected_demo_index == index:
 		_clear_demo_selection()
 		_msg.text = "Boa! Continue até formar o desenho." if not _demo_goal.is_empty() else "Viu como a regra muda as luzes? Toque em Rever efeito para testar de novo."
@@ -177,16 +178,16 @@ func _tap(x: int, y: int) -> void:
 		return
 	if _selected_demo_index >= 0:
 		_clear_demo_selection()
-		_msg.text = "Prévia cancelada. Toque numa lâmpada para tentar de novo."
+		if world_id == 1:
+			_msg.text = "Prévia cancelada. Toque numa lâmpada para tentar de novo."
 		return
 	_selected_demo_index = index
 	_selected_demo_cells = board.affected_cells(x, y)
-	for i in _selected_demo_cells.size():
-		var cell_index := _selected_demo_cells[i]
+	for cell_index in _selected_demo_cells:
 		if cell_index >= 0 and cell_index < _bulbs.size():
 			_bulbs[cell_index].set_preview(true)
-			_bulbs[cell_index].play_effect(minf(float(i) * 0.035, 0.14))
-	_msg.text = "Afeta %d lâmpadas. Toque de novo nesta para testar; toque fora para cancelar." % _selected_demo_cells.size()
+	if world_id == 1:
+		_msg.text = "Afeta %d lâmpadas. Toque de novo nesta para testar; toque fora para cancelar." % _selected_demo_cells.size()
 
 
 func _clear_demo_selection() -> void:
@@ -208,7 +209,8 @@ func _cancel_demo_on_dim(event: InputEvent) -> void:
 		pressed = (event as InputEventScreenTouch).pressed
 	if pressed:
 		_clear_demo_selection()
-		_msg.text = "Prévia cancelada. Toque numa lâmpada para tentar de novo."
+		if int(_world.get("id", 1)) == 1:
+			_msg.text = "Prévia cancelada. Toque numa lâmpada para tentar de novo."
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -226,7 +228,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		pointer_position = touch.position
 	if pressed and not _bulbs[_selected_demo_index].get_global_rect().has_point(pointer_position):
 		_clear_demo_selection()
-		_msg.text = "Prévia cancelada. Toque numa lâmpada para tentar de novo."
+		if int(_world.get("id", 1)) == 1:
+			_msg.text = "Prévia cancelada. Toque numa lâmpada para tentar de novo."
 
 
 func _refresh() -> void:
@@ -249,7 +252,10 @@ func _reset_demo() -> void:
 
 
 func _default_demo_text() -> String:
-	return "Toque numa lâmpada para ver o alcance; as afetadas piscam. Toque nela de novo para formar o desenho. Isso não gasta dicas." if not _demo_goal.is_empty() else "Toque numa lâmpada para ver o alcance; as afetadas piscam. Toque nela de novo para testar. Isso não gasta dicas."
+	var world_id := int(_world.get("id", 1))
+	if world_id == 1:
+		return "Toque numa lâmpada para ver o alcance e toque nela de novo para formar o desenho. Nas quatro primeiras fases, a lâmpada da próxima jogada pulsa." if not _demo_goal.is_empty() else "Toque numa lâmpada para ver o alcance e toque nela de novo para testar. Nas quatro primeiras fases, a lâmpada da próxima jogada pulsa."
+	return "Experimente a regra neste tabuleiro. Nas quatro primeiras fases, a lâmpada da próxima jogada pulsa."
 
 
 func _animate(panel: Control) -> void:

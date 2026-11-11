@@ -67,16 +67,22 @@ func is_solved() -> bool:
 
 
 func _apply(p: Vector2i) -> void:
+	last_touched = affected_cells(p.x, p.y)
+	for index in last_touched:
+		cells[index] ^= 1
+
+
+func affected_cells(x: int, y: int) -> Array[int]:
+	var p := Vector2i(x, y)
 	var touched: Dictionary = {}
 	for d in offsets:
 		var q: Vector2i = p + d
 		_mark(touched, q)
 	_apply_effect(p, touched)
-	last_touched.clear()
+	var indices: Array[int] = []
 	for i in touched.keys():
-		var index := int(i)
-		cells[index] ^= 1
-		last_touched.append(index)
+		indices.append(int(i))
+	return indices
 
 
 func _mark(touched: Dictionary, pos: Vector2i) -> void:

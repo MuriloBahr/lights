@@ -3,11 +3,13 @@ extends Control
 
 var world_id := 1
 var level_id := 0
+var _visual_theme := 0
 
 
-func setup(id: int, phase_id := 0) -> void:
+func setup(id: int, phase_id := 0, theme_id := 0) -> void:
 	world_id = clampi(id, 1, 7)
 	level_id = phase_id
+	_visual_theme = clampi(theme_id, 0, 3)
 	queue_redraw()
 
 
@@ -56,6 +58,16 @@ func _draw() -> void:
 	var wash: Color = level_washes[posmod(level_id, level_washes.size())]
 	top = top.lerp(wash, 0.10).lerp(accent, float(level_id % 6) * 0.012)
 	bottom = bottom.lerp(wash, 0.16).lerp(accent, float(level_id % 6) * 0.018)
+	match _visual_theme:
+		1:
+			top = top.lerp(Color("d65d9d"), 0.34)
+			bottom = bottom.lerp(Color("ffb6d7"), 0.28)
+		2:
+			top = top.lerp(Color("397b72"), 0.32)
+			bottom = bottom.lerp(Color("a1edce"), 0.26)
+		3:
+			top = top.lerp(Color("343e79"), 0.38)
+			bottom = bottom.lerp(Color("a3baff"), 0.28)
 	var bands := maxi(1, ceili(size.y / 32.0))
 	for i in bands:
 		var y0 := size.y * float(i) / bands

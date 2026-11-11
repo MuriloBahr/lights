@@ -19,7 +19,7 @@ func _ready() -> void:
 	State.sfx.duck(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var backdrop := WorldBackdrop.new()
-	backdrop.setup(7)
+	backdrop.setup(7, 0, State.visual_theme())
 	add_child(backdrop)
 	_margin = MarginContainer.new()
 	_margin.set_anchors_preset(Control.PRESET_FULL_RECT)

@@ -22,11 +22,17 @@ var _hints_used := 0
 var _combo_streak := 0
 var _goal: Array = []
 var _preview := GoalPreview.new()
+var _settings_panel: SettingsPanel
+var _selected_move_index := -1
+var _selected_move_cells: Array[int] = []
+var _selected_move_hint := ""
+var _selected_move_hint_active := false
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_PASS
 	levels = State.levels
-	level_index = State.current_level
+	level_index = State.daily_level if State.daily_mode else State.current_level
 	State.sfx.duck(true)
 	_build_ui()
 	board.changed.connect(_on_board_changed)
@@ -39,31 +45,42 @@ func _build_ui() -> void:
 	add_child(backdrop)
 	_margin = MarginContainer.new()
 	_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_margin.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(_margin)
 
 	_root = VBoxContainer.new()
+	_root.mouse_filter = Control.MOUSE_FILTER_PASS
 	_margin.add_child(_root)
 
 	var top := HBoxContainer.new()
+	top.mouse_filter = Control.MOUSE_FILTER_PASS
 	_root.add_child(top)
 	var back := Ui.button("<", Palette.BULBS[3])
 	back.custom_minimum_size = Vector2(64, 64)
 	back.pressed.connect(_back)
 	top.add_child(back)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(title)
-	var balance := Control.new()
-	balance.custom_minimum_size = Vector2(64, 0)
-	top.add_child(balance)
+	var gear := GearButton.new()
+	gear.custom_minimum_size = Vector2(64, 64)
+	gear.pressed.connect(_open_settings)
+	top.add_child(gear)
 
 	_root.add_child(info)
+	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(hint)
+	_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_preview)
 
 	_center = CenterContainer.new()
 	_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_center.mouse_filter = Control.MOUSE_FILTER_PASS
 	_root.add_child(_center)
+	grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 4)
 	_center.add_child(grid)
@@ -82,20 +99,23 @@ func _rebuild_toolbar() -> void:
 	_toolbar_compact = compact
 	if compact:
 		_toolbar = VBoxContainer.new()
+		_toolbar.mouse_filter = Control.MOUSE_FILTER_PASS
 		_toolbar.add_theme_constant_override("separation", 8)
 		var primary_actions := HBoxContainer.new()
+		primary_actions.mouse_filter = Control.MOUSE_FILTER_PASS
 		primary_actions.add_theme_constant_override("separation", 8)
 		_hint_button = _action("Dica", Palette.BULBS[2], _show_hint)
 		primary_actions.add_child(_hint_button)
-		primary_actions.add_child(_action("Desfazer", Palette.BULBS[4], board.undo))
+		primary_actions.add_child(_action("Desfazer", Palette.BULBS[4], _undo_move))
 		_toolbar.add_child(primary_actions)
 		_toolbar.add_child(_action("Reiniciar", Palette.BULBS[1], _restart_level))
 	else:
 		_toolbar = HBoxContainer.new()
+		_toolbar.mouse_filter = Control.MOUSE_FILTER_PASS
 		_toolbar.add_theme_constant_override("separation", 16)
 		_hint_button = _action("Dica", Palette.BULBS[2], _show_hint)
 		_toolbar.add_child(_hint_button)
-		_toolbar.add_child(_action("Desfazer", Palette.BULBS[4], board.undo))
+		_toolbar.add_child(_action("Desfazer", Palette.BULBS[4], _undo_move))
 		_toolbar.add_child(_action("Reiniciar", Palette.BULBS[1], _restart_level))
 	_root.add_child(_toolbar)
 
@@ -132,12 +152,14 @@ func _action(text: String, color: Color, callback: Callable) -> Button:
 func _load(index: int) -> void:
 	State.sfx.enter()
 	level_index = index
+	if not State.daily_mode:
+		State.set_current_level(index)
 	_hints_used = 0
 	_combo_streak = 0
 	var level: Dictionary = levels[index]
 	_goal = level.get("goal", [])
 	_preview.setup(level)
-	backdrop.setup(int(level["world"]), int(level["id"]))
+	backdrop.setup(int(level["world"]), int(level["id"]), State.visual_theme())
 	_build_grid(level)
 	board.load_level(_board_level(level))
 	_show_world_intro_if_needed(level)
@@ -166,6 +188,7 @@ func _show_world_intro_if_needed(level: Dictionary) -> void:
 
 
 func _build_grid(level: Dictionary) -> void:
+	_clear_selected_move()
 	for b in bulbs:
 		grid.remove_child(b)
 		b.queue_free()
@@ -202,7 +225,7 @@ func _refresh() -> void:
 	title.add_theme_color_override("font_color", Palette.BULBS[int(world["color"])])
 	var hint_count := int(level["par"]) - 1
 	var hints_left := maxi(0, hint_count - _hints_used)
-	info.text = "Toques %d/%d • Dicas %d/%d" % [board.moves.size(), level["par"], hints_left, hint_count]
+	info.text = "Toques %d/%d • Dicas %d/%d • Toque para prévia" % [board.moves.size(), level["par"], hints_left, hint_count]
 	_hint_button.text = "Dica (%d)" % hints_left
 	_hint_button.disabled = hints_left == 0
 	hint.text = level.get("hint", "")
@@ -218,6 +241,47 @@ func _on_board_changed() -> void:
 
 
 func _on_bulb_pressed(x: int, y: int) -> void:
+	var index := y * board.size + x
+	if _selected_move_index == index:
+		_clear_selected_move()
+		_apply_bulb_move(x, y)
+		return
+	if _selected_move_index >= 0:
+		_clear_selected_move()
+		return
+	_select_bulb_move(x, y)
+
+
+func _select_bulb_move(x: int, y: int) -> void:
+	_selected_move_index = y * board.size + x
+	_selected_move_cells = board.affected_cells(x, y)
+	_selected_move_hint = hint.text
+	_selected_move_hint_active = true
+	for cell_index in _selected_move_cells:
+		if cell_index >= 0 and cell_index < bulbs.size():
+			bulbs[cell_index].set_preview(true)
+	if _is_rule_intro_level():
+		for i in _selected_move_cells.size():
+			var cell_index := _selected_move_cells[i]
+			if cell_index >= 0 and cell_index < bulbs.size():
+				bulbs[cell_index].play_effect(minf(float(i) * 0.035, 0.14))
+	hint.text = "Afeta %d lâmpadas. Toque de novo nesta para confirmar; toque fora para cancelar." % _selected_move_cells.size()
+	State.sfx.click()
+
+
+func _clear_selected_move() -> void:
+	for cell_index in _selected_move_cells:
+		if cell_index >= 0 and cell_index < bulbs.size():
+			bulbs[cell_index].set_preview(false)
+	_selected_move_cells.clear()
+	_selected_move_index = -1
+	if _selected_move_hint_active and is_instance_valid(hint):
+		hint.text = _selected_move_hint
+	_selected_move_hint = ""
+	_selected_move_hint_active = false
+
+
+func _apply_bulb_move(x: int, y: int) -> void:
 	var lit_before := _lit_count()
 	board.toggle(x, y)
 	State.sfx.toggle(board.get_cell(x, y) == 1)
@@ -230,6 +294,32 @@ func _on_bulb_pressed(x: int, y: int) -> void:
 		_combo_streak = 0
 
 
+func _is_rule_intro_level() -> bool:
+	var current_world := int(levels[level_index]["world"])
+	var phase_in_world := 0
+	for i in level_index + 1:
+		if int(levels[i]["world"]) == current_world:
+			phase_in_world += 1
+	return phase_in_world <= 4
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _selected_move_index < 0 or _selected_move_index >= bulbs.size():
+		return
+	var pointer_position := Vector2.ZERO
+	var pressed := false
+	if event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
+		pointer_position = mouse.position
+	elif event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		pressed = touch.pressed
+		pointer_position = touch.position
+	if pressed and not bulbs[_selected_move_index].get_global_rect().has_point(pointer_position):
+		_clear_selected_move()
+
+
 func _lit_count() -> int:
 	var count := 0
 	for cell in board.cells:
@@ -238,6 +328,7 @@ func _lit_count() -> int:
 
 
 func _show_hint() -> void:
+	_clear_selected_move()
 	var level: Dictionary = levels[level_index]
 	if _hints_used >= int(level["par"]):
 		return
@@ -263,9 +354,15 @@ func _show_hint() -> void:
 
 
 func _restart_level() -> void:
+	_clear_selected_move()
 	_hints_used = 0
 	_combo_streak = 0
 	board.reset()
+
+
+func _undo_move() -> void:
+	_clear_selected_move()
+	board.undo()
 
 
 func _on_solved() -> void:
@@ -304,8 +401,17 @@ func _stars(moves: int, par: int) -> int:
 
 
 func _back() -> void:
+	_clear_selected_move()
 	State.daily_mode = false
 	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+
+
+func _open_settings() -> void:
+	_clear_selected_move()
+	if is_instance_valid(_settings_panel):
+		return
+	_settings_panel = SettingsPanel.new()
+	add_child(_settings_panel)
 
 
 func _is_lit(i: int) -> bool:

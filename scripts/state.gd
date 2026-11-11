@@ -9,8 +9,12 @@ const INSERTED_PAINTING_LEVELS := 12
 var levels: Array = []
 var worlds: Array = []
 var current_level := 0
+var has_current_level := false
+var daily_level := 0
 var stars := {}
 var daily_completed: Dictionary = {}
+var mission_progress: Dictionary = {}
+var mission_lamps := 0
 var daily_mode := false
 var daily_date := ""
 var settings := {"music": true, "sfx": true, "vibration": true, "seen_howto": false}
@@ -63,9 +67,25 @@ func is_unlocked(id: int) -> bool:
 	return id == 1 or stars_for(id - 1) > 0
 
 
+func set_current_level(index: int) -> void:
+	if levels.is_empty():
+		return
+	var safe_index := clampi(index, 0, levels.size() - 1)
+	var changed := not has_current_level or current_level != safe_index
+	current_level = safe_index
+	has_current_level = true
+	if changed:
+		_write()
+
+
 func record(id: int, earned: int) -> void:
+	var changed := false
 	if earned > stars_for(id):
 		stars[str(id)] = earned
+		changed = true
+	if _mark_daily_mission("level", 1):
+		changed = true
+	if changed:
 		_write()
 
 
@@ -73,7 +93,7 @@ func start_daily_challenge() -> void:
 	var date := Time.get_date_dict_from_system()
 	daily_date = "%04d-%02d-%02d" % [int(date["year"]), int(date["month"]), int(date["day"])]
 	var day_seed := int(date["year"]) * 372 + int(date["month"]) * 31 + int(date["day"])
-	current_level = posmod(day_seed, levels.size())
+	daily_level = posmod(day_seed, levels.size())
 	daily_mode = true
 
 
@@ -86,6 +106,59 @@ func record_daily_completion() -> void:
 	if daily_date.is_empty():
 		daily_date = _today_key()
 	daily_completed[daily_date] = true
+	_mark_daily_mission("daily", 2)
+	_write()
+
+
+func missions_for_today() -> Dictionary:
+	var today := _today_key()
+	var saved: Dictionary = mission_progress.get(today, {})
+	return {
+		"level": bool(saved.get("level", false)),
+		"daily": bool(saved.get("daily", daily_completed.get(today, false))),
+	}
+
+
+func _mark_daily_mission(mission: String, reward: int) -> bool:
+	var today := _today_key()
+	var status: Dictionary = mission_progress.get(today, {"level": false, "daily": false})
+	if bool(status.get(mission, false)):
+		return false
+	status[mission] = true
+	mission_progress[today] = status
+	mission_lamps += reward
+	return true
+
+
+func total_lamps() -> int:
+	var total := mission_lamps
+	for level_stars in stars.values():
+		total += int(level_stars)
+	return total
+
+
+func visual_theme_unlocked(theme_id: int) -> bool:
+	match theme_id:
+		0:
+			return true
+		1:
+			return total_lamps() >= 20
+		2:
+			return total_lamps() >= 60
+		3:
+			return total_lamps() >= 120
+	return false
+
+
+func visual_theme() -> int:
+	var selected := int(settings.get("visual_theme", 0))
+	return selected if visual_theme_unlocked(selected) else 0
+
+
+func select_visual_theme(theme_id: int) -> void:
+	if not visual_theme_unlocked(theme_id):
+		return
+	settings["visual_theme"] = theme_id
 	_write()
 
 
@@ -102,6 +175,10 @@ func _read() -> void:
 	if parsed is Dictionary:
 		stars = parsed.get("stars", {})
 		daily_completed = parsed.get("daily_completed", {})
+		mission_progress = parsed.get("mission_progress", {})
+		mission_lamps = int(parsed.get("mission_lamps", 0))
+		current_level = int(parsed.get("current_level", current_level))
+		has_current_level = bool(parsed.get("has_current_level", false))
 		settings.merge(parsed.get("settings", {}), true)
 		if int(parsed.get("level_save_version", 1)) < LEVEL_SAVE_VERSION:
 			var shifted_stars := {}
@@ -120,4 +197,4 @@ func _today_key() -> String:
 
 func _write() -> void:
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify({"level_save_version": LEVEL_SAVE_VERSION, "stars": stars, "daily_completed": daily_completed, "settings": settings}))
+	f.store_string(JSON.stringify({"level_save_version": LEVEL_SAVE_VERSION, "stars": stars, "daily_completed": daily_completed, "mission_progress": mission_progress, "mission_lamps": mission_lamps, "current_level": current_level, "has_current_level": has_current_level, "settings": settings}))

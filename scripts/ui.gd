@@ -18,6 +18,25 @@ static func button(text: String, color: Color, font_size := 28, sound := "click"
 	return b
 
 
+static func app_navigation(parent: Control, active: String) -> HBoxContainer:
+	var nav := HBoxContainer.new()
+	nav.add_theme_constant_override("separation", 8)
+	var tabs := [
+		{"title": "Fases", "id": "levels", "path": "res://scenes/level_select.tscn", "color": Palette.BULBS[3]},
+		{"title": "Missões", "id": "missions", "path": "res://scenes/missions.tscn", "color": Palette.BULBS[4]},
+		{"title": "Temas", "id": "themes", "path": "res://scenes/themes.tscn", "color": Palette.BULBS[2]},
+	]
+	for tab in tabs:
+		var button_color: Color = tab["color"] if tab["id"] == active else Palette.OFF
+		var button := Ui.button(String(tab["title"]), button_color, 18)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size.y = 58
+		button.pressed.connect(State.go.bind(String(tab["path"])))
+		nav.add_child(button)
+	parent.add_child(nav)
+	return nav
+
+
 static func label(text: String, size: int, color := Color.WHITE) -> Label:
 	var l := Label.new()
 	l.text = text

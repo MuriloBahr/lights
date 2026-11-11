@@ -5,6 +5,8 @@ signal pressed
 
 var color: Color = Palette.BULBS[0]
 var lit := false
+var previewed := false
+var _pointer_down := false
 var glow := 0.0:
 	set(value):
 		glow = value
@@ -30,6 +32,13 @@ func set_lit(value: bool) -> void:
 		_fade.kill()
 	_fade = create_tween()
 	_fade.tween_property(self, "glow", 1.0 if lit else 0.0, 0.28).set_trans(Tween.TRANS_SINE)
+
+
+func set_preview(value: bool) -> void:
+	if previewed == value:
+		return
+	previewed = value
+	queue_redraw()
 
 
 func appear(delay: float) -> void:
@@ -73,8 +82,13 @@ func _notification(what: int) -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	var e := event as InputEventMouseButton
-	if e and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+	if not e or e.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if e.pressed:
+		_pointer_down = true
 		_bounce()
+	elif _pointer_down:
+		_pointer_down = false
 		pressed.emit()
 
 
@@ -100,6 +114,8 @@ func _draw() -> void:
 	var r := s * 0.34
 	var body := Palette.OFF.lerp(color, glow)
 
+	if previewed:
+		draw_arc(c, r * 1.28, 0.0, TAU, 40, Color(Palette.BULBS[1], 0.95), maxf(3.0, s * 0.035), true)
 	if pulse_strength > 0.01:
 		draw_arc(c, r * 1.24, 0.0, TAU, 36, Color(color, pulse_strength * 0.8), maxf(2.0, s * 0.035), true)
 	for i in 6:

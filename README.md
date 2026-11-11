@@ -26,12 +26,16 @@ Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite
 
 ## Recursos
 
-- Fundos pastel com detalhes próprios por fase, lâmpadas com carinhas, animações e efeitos visuais.
+- Fundos pastel com detalhes próprios por fase, lâmpadas com carinhas, animações e temas visuais desbloqueáveis.
+- Prévia das lâmpadas afetadas antes de confirmar a jogada; tocar fora cancela a seleção.
+- Nas quatro primeiras fases de cada mundo, as lâmpadas afetadas pulsam para ensinar a regra visualmente.
 - Transição animada ao iniciar o jogo, com lâmpadas subindo pela tela.
 - Música, efeitos sonoros e vibração, com controles de preferência nas configurações.
 - Tutoriais interativos por mundo e um guia **Como jogar** nas configurações.
-- Desafio diário sem cronômetro. A conclusão do dia é salva separadamente e não altera o progresso das fases normais.
-- Progresso, recompensas, configurações e conclusão diária salvos localmente em `user://save.json`.
+- Navegação separada entre **Fases**, **Missões** e **Temas** para manter cada tela mais simples.
+- Tela de **Missões** com um tabuleiro diário e uma tarefa simples de fase normal. As missões aceitam dicas e tentativas livres e dão lâmpadas bônus uma vez por dia.
+- Lâmpadas de fase continuam registrando o melhor resultado; as bônus se acumulam e desbloqueiam temas de fundo na tela **Temas**, sem consumir estrelas.
+- Progresso, recompensas de missão, temas selecionados, configurações e conclusão diária são salvos em `user://save.json`.
 - Layout responsivo para telas estreitas e altas, com painéis de ajuda roláveis e seleção de fases compatível com toque.
 - Orientação vertical configurada para celulares Android e iOS.
 
@@ -44,6 +48,7 @@ Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite
 
 ```text
 assets/
+  icons/                 ícones do projeto e do aplicativo Android
   music/                 música do jogo
   sfx/                   efeitos sonoros
 data/
@@ -51,11 +56,13 @@ data/
 scenes/
   menu.tscn              menu principal
   level_select.tscn      seleção de fases
+  missions.tscn          missões diárias
+  themes.tscn            coleção de temas visuais
   game.tscn              tabuleiro
 scripts/
   board.gd               regras e estado do tabuleiro, sem dependência da interface
   game.gd                tela e fluxo da partida
-  level_select.gd        seleção, progresso e desafio diário
+  level_select.gd        seleção e progresso das fases
   state.gd               dados compartilhados, salvamento e transições
   bulb.gd                lâmpadas, animações e desenho
   world_backdrop.gd      fundos temáticos
@@ -63,6 +70,8 @@ scripts/
   how_to_panel.gd        demonstrações interativas
   settings_panel.gd      configurações
   menu.gd                tela inicial e animação de início
+  missions.gd            missões e recompensas diárias
+  themes.gd              coleção e seleção de temas visuais
   gear_button.gd         botão de configurações
   win_panel.gd           resultado da fase
   sfx.gd                 música, efeitos sonoros e vibração

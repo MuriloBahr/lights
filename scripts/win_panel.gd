@@ -10,11 +10,14 @@ var _has_next := false
 var _daily := false
 var _easter_egg := ""
 var _boss_name := ""
+var _new_boss_theme := -1
+var _new_boss_track := -1
+var _theme_unlock_card: Control
 var _counter := Ui.label("", 30, Palette.BASE)
 var _bulbs: Array[Bulb] = []
 
 
-func setup(moves: int, par: int, earned: int, has_next: bool, daily := false, easter_egg := "", boss_name := "") -> void:
+func setup(moves: int, par: int, earned: int, has_next: bool, daily := false, easter_egg := "", boss_name := "", new_boss_theme := -1, new_boss_track := -1) -> void:
 	_moves = moves
 	_par = par
 	_earned = earned
@@ -22,6 +25,8 @@ func setup(moves: int, par: int, earned: int, has_next: bool, daily := false, ea
 	_daily = daily
 	_easter_egg = easter_egg
 	_boss_name = boss_name
+	_new_boss_theme = new_boss_theme
+	_new_boss_track = new_boss_track
 
 
 func _ready() -> void:
@@ -56,6 +61,9 @@ func _ready() -> void:
 	var heading := "Desafio concluído!" if _daily else ("Chefe derrotado!" if not _boss_name.is_empty() else "Resolvido!")
 	box.add_child(Ui.label(heading, 30 if compact else (42 if _daily else 48), Palette.BULBS[1]))
 	box.add_child(Ui.label(_boss_name if not _boss_name.is_empty() else ["Boa!", "Muito bem!", "Perfeito!"][_earned - 1], 22 if compact else 28, Palette.BASE))
+	if _new_boss_theme >= 4 or _new_boss_track > 0:
+		_theme_unlock_card = _make_theme_unlock_card(_new_boss_theme, _new_boss_track, compact)
+		box.add_child(_theme_unlock_card)
 	if not _easter_egg.is_empty():
 		box.add_child(Ui.label(_easter_egg, 48 if compact else 64, Palette.BULBS[0]))
 	box.add_child(_bulb_row(72.0 if compact else 96.0))
@@ -72,6 +80,73 @@ func _ready() -> void:
 	box.add_child(row)
 
 	_animate(panel)
+
+
+func _make_theme_unlock_card(theme_id: int, track_world_id: int, compact: bool) -> Control:
+	var world_id := theme_id - 3 if theme_id >= 4 else track_world_id
+	var accent: Color = Palette.BULBS[int(State.worlds[world_id - 1]["color"])]
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 82 if compact else 98)
+	panel.pivot_offset = panel.custom_minimum_size * 0.5
+	panel.modulate.a = 0.0
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(Palette.OFF, 0.78)
+	style.border_color = Color(accent, 0.95)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(18)
+	style.set_content_margin_all(5)
+	panel.add_theme_stylebox_override("panel", style)
+	var frame := Control.new()
+	frame.custom_minimum_size = Vector2(0, 70 if compact else 86)
+	frame.clip_contents = true
+	panel.add_child(frame)
+	var art := WorldBackdrop.new()
+	art.setup(world_id, 20, theme_id)
+	frame.add_child(art)
+	var row := HBoxContainer.new()
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.add_theme_constant_override("separation", 8)
+	row.offset_left = 8
+	row.offset_top = 4
+	row.offset_right = -8
+	row.offset_bottom = -4
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(row)
+	var avatar := BossPortrait.new()
+	avatar.custom_minimum_size = Vector2(60 if compact else 72, 60 if compact else 72)
+	avatar.setup(world_id, String(State.worlds[world_id - 1]["boss"]), false)
+	avatar.set_process(false)
+	avatar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(avatar)
+	var copy := VBoxContainer.new()
+	copy.add_theme_constant_override("separation", 1)
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(copy)
+	var has_new_theme := theme_id >= 4
+	var has_new_track := track_world_id > 0
+	var title_text := "NOVOS DESBLOQUEIOS!" if has_new_theme and has_new_track else ("TEMA DESBLOQUEADO!" if has_new_theme else "TRILHA DESBLOQUEADA!")
+	var title := Ui.label(title_text, 15 if compact else 17, Palette.BULBS[1])
+	title.add_theme_color_override("font_outline_color", Palette.FACE)
+	title.add_theme_constant_override("outline_size", 3)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	copy.add_child(title)
+	if has_new_theme:
+		var theme_name := Ui.label("Tema: %s" % State.visual_theme_name(theme_id), 16 if compact else 18, Color.WHITE)
+		theme_name.add_theme_color_override("font_outline_color", Palette.FACE)
+		theme_name.add_theme_constant_override("outline_size", 3)
+		theme_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		theme_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		copy.add_child(theme_name)
+	if has_new_track:
+		var track_name := String(State.worlds[track_world_id - 1]["boss"])
+		var track_label := Ui.label("♫ Trilha: %s" % track_name, 15 if compact else 17, Color.WHITE)
+		track_label.add_theme_color_override("font_outline_color", Palette.FACE)
+		track_label.add_theme_constant_override("outline_size", 3)
+		track_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		copy.add_child(track_label)
+	return panel
 
 
 func _bulb_row(bulb_size: float) -> HBoxContainer:
@@ -113,6 +188,12 @@ func _animate(panel: Control) -> void:
 	t.tween_property(panel, "modulate:a", 1.0, 0.25)
 	t.tween_method(_set_counter, 0.0, float(_moves), 0.6)
 	_confetti()
+	if is_instance_valid(_theme_unlock_card):
+		await get_tree().create_timer(0.2).timeout
+		var reveal := create_tween().set_parallel(true)
+		_theme_unlock_card.scale = Vector2(0.72, 0.72)
+		reveal.tween_property(_theme_unlock_card, "scale", Vector2.ONE, 0.48).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		reveal.tween_property(_theme_unlock_card, "modulate:a", 1.0, 0.32)
 
 	await get_tree().create_timer(0.5).timeout
 	for i in _earned:

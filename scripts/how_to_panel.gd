@@ -64,7 +64,7 @@ func _ready() -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Palette.OFF
 	sb.set_corner_radius_all(32)
-	var compact := viewport_size.x < 400.0
+	var compact := viewport_size.x < 640.0
 	sb.set_content_margin_all(int(clampf(viewport_size.x * 0.055, 14.0, 28.0)))
 	panel.add_theme_stylebox_override("panel", sb)
 	panel.custom_minimum_size = Vector2(minf(460.0, viewport_size.x - 48.0), 0)
@@ -78,6 +78,9 @@ func _ready() -> void:
 
 	var world_id := int(_world["id"])
 	var heading := Ui.label("Como jogar" if world_id == 1 else "Novo mundo: %s" % _world["name"], 28 if compact else 36)
+	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(heading)
 	if world_id == 1:

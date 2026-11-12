@@ -670,6 +670,15 @@ func _undo_move() -> void:
 func _on_solved() -> void:
 	var level: Dictionary = levels[level_index]
 	var is_boss := not State.daily_mode and level.has("boss")
+	var new_boss_theme := -1
+	var new_boss_track := -1
+	if is_boss:
+		var boss_theme_id := int(level["world"]) + 3
+		if not State.visual_theme_unlocked(boss_theme_id):
+			new_boss_theme = boss_theme_id
+		var boss_world_id := int(level["world"])
+		if boss_world_id <= 3 and not State.boss_music_unlocked(boss_world_id):
+			new_boss_track = boss_world_id
 	var moves := board.moves.size()
 	var earned := _stars(moves, int(level["par"]))
 	if State.daily_mode:
@@ -687,7 +696,7 @@ func _on_solved() -> void:
 	if is_instance_valid(_win):
 		return
 	_win = WinPanel.new()
-	_win.setup(moves, int(level["par"]), earned, level_index + 1 < levels.size() and not State.daily_mode, State.daily_mode, String(level.get("easter_egg", "")), String(level.get("boss", "")) if is_boss else "")
+	_win.setup(moves, int(level["par"]), earned, level_index + 1 < levels.size() and not State.daily_mode, State.daily_mode, String(level.get("easter_egg", "")), String(level.get("boss", "")) if is_boss else "", new_boss_theme, new_boss_track)
 	_win.chosen.connect(_on_win_choice)
 	add_child(_win)
 

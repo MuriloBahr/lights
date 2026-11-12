@@ -25,11 +25,18 @@ const LEVEL_ID_500_TO_200_RANGES := [
 	[1, 50, 1], [51, 50, 21], [101, 50, 41], [151, 50, 61], [201, 50, 81],
 	[251, 50, 101], [301, 50, 121], [351, 50, 141], [401, 50, 161], [451, 50, 181],
 ]
+const BOSS_THEME_LEVEL_IDS := [20, 60, 80, 100, 120, 140, 40, 160, 180, 200]
+const BOSS_THEME_NAMES := [
+	"Soninho estrelado", "Observatório da Coruja", "Reino de Nuvem", "Jardim Camaleão",
+	"Dueto Lunar", "Fundo do Mar Elétrico", "Ateliê do Pintor", "Maré da Baleia Aurora",
+	"Trilha do Guardião Meteoro", "Reino da Rainha",
+]
 
 var levels: Array = []
 var worlds: Array = []
 var current_level := 0
 var has_current_level := false
+var requested_level_index := -1
 var daily_level := 0
 var stars := {}
 var daily_completed: Dictionary = {}
@@ -53,6 +60,9 @@ func _ready() -> void:
 	_read()
 	add_child(sfx)
 	sfx.apply(settings)
+	var selected_track := selected_music_track()
+	if selected_track > 0:
+		sfx.set_main_track(selected_track)
 
 	var layer := CanvasLayer.new()
 	layer.layer = 100
@@ -159,6 +169,9 @@ func total_lamps() -> int:
 
 
 func visual_theme_unlocked(theme_id: int) -> bool:
+	if theme_id >= 4:
+		var boss_theme_index := theme_id - 4
+		return boss_theme_index < BOSS_THEME_LEVEL_IDS.size() and stars_for(BOSS_THEME_LEVEL_IDS[boss_theme_index]) > 0
 	match theme_id:
 		0:
 			return true
@@ -169,6 +182,30 @@ func visual_theme_unlocked(theme_id: int) -> bool:
 		3:
 			return total_lamps() >= 120
 	return false
+
+
+func visual_theme_name(theme_id: int) -> String:
+	if theme_id >= 4 and theme_id - 4 < BOSS_THEME_NAMES.size():
+		return String(BOSS_THEME_NAMES[theme_id - 4])
+	var basic_names := ["Noite lilás", "Algodão doce", "Jardim menta", "Céu estrelado"]
+	return String(basic_names[clampi(theme_id, 0, basic_names.size() - 1)])
+
+
+func boss_music_unlocked(world_id: int) -> bool:
+	return world_id >= 1 and world_id <= 3 and stars_for(BOSS_THEME_LEVEL_IDS[world_id - 1]) > 0
+
+
+func selected_music_track() -> int:
+	var selected := int(settings.get("music_track", 0))
+	return selected if selected == 0 or boss_music_unlocked(selected) else 0
+
+
+func select_music_track(world_id: int) -> void:
+	if world_id != 0 and not boss_music_unlocked(world_id):
+		return
+	settings["music_track"] = world_id
+	_write()
+	sfx.set_main_track(world_id)
 
 
 func visual_theme() -> int:

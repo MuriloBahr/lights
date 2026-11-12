@@ -33,14 +33,15 @@ Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite
 - Prévia das lâmpadas afetadas antes de confirmar a jogada; tocar fora cancela a seleção.
 - Nas quatro primeiras fases de cada mundo, a próxima lâmpada recomendada pulsa para mostrar onde tocar.
 - Transição animada ao iniciar o jogo, com lâmpadas subindo pela tela.
-- Música, efeitos sonoros e vibração, com controles de preferência nas configurações.
+- Música, efeitos sonoros e vibração, com controles de preferência nas configurações; a aba **Temas** também traz uma biblioteca para pré-visualizar e selecionar as trilhas de chefe desbloqueadas.
 - Tutoriais interativos por mundo e um guia **Como jogar** nas configurações.
 - Navegação separada entre **Fases**, **Missões** e **Temas** para manter cada tela mais simples.
 - Seleção das fases em um caminho sinuoso, adaptado para toque, com o último nível de cada mundo destacado como boss.
 - Cada boss tem nome próprio, reage às jogadas, usa um poder animado e tem uma tela de vitória especial.
+- Cada chefe libera um tema de fundo inspirado no seu visual; o novo tema aparece na tela de vitória e fica disponível na aba **Temas**.
 - Tela de **Missões** com um tabuleiro diário e uma tarefa simples de fase normal. As missões aceitam dicas e tentativas livres e dão lâmpadas bônus uma vez por dia.
 - Lâmpadas de fase continuam registrando o melhor resultado; as bônus se acumulam e desbloqueiam temas de fundo na tela **Temas**, sem consumir estrelas.
-- Progresso, recompensas de missão, temas selecionados, configurações e conclusão diária são salvos em `user://save.json`.
+- Progresso, recompensas de missão, temas e trilhas selecionados, configurações e conclusão diária são salvos em `user://save.json`.
 - Layout responsivo para telas estreitas e altas, com painéis de ajuda roláveis e seleção de fases compatível com toque.
 - Orientação vertical configurada para celulares Android e iOS.
 

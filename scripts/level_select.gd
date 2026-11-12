@@ -178,11 +178,11 @@ func _ready() -> void:
 	var compact := get_viewport_rect().size.x < 400.0
 	_progress = Ui.label("", 20 if compact else 24, Palette.BASE)
 	root.add_child(_progress)
-	_test_unlock_button = Ui.button("Liberar todas as fases (teste)", Palette.BULBS[5], 17)
-	_test_unlock_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_test_unlock_button.custom_minimum_size.y = 48
-	_test_unlock_button.pressed.connect(_toggle_test_unlock)
-	root.add_child(_test_unlock_button)
+	# _test_unlock_button = Ui.button("Liberar todas as fases (teste)", Palette.BULBS[5], 17)
+	# _test_unlock_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# _test_unlock_button.custom_minimum_size.y = 48
+	# _test_unlock_button.pressed.connect(_toggle_test_unlock)
+	# root.add_child(_test_unlock_button)
 
 	_scroll = ScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -248,7 +248,11 @@ func _rebuild_level_list() -> void:
 	var world_entries: Array[Dictionary] = []
 	var current_world_id := -1
 	_current_card = null
-	_focus_index = _level_to_focus()
+	if State.requested_level_index >= 0:
+		_focus_index = clampi(State.requested_level_index, 0, State.levels.size() - 1)
+		State.requested_level_index = -1
+	else:
+		_focus_index = _level_to_focus()
 	for i in State.levels.size():
 		var level: Dictionary = State.levels[i]
 		total += State.stars_for(int(level["id"]))
@@ -263,7 +267,7 @@ func _rebuild_level_list() -> void:
 	if not world_entries.is_empty():
 		_add_world_path(current, world_entries, compact)
 	_progress.text = "Lâmpadas das fases: %d / %d" % [total, State.levels.size() * 3]
-	_test_unlock_button.text = "Desativar liberação de teste" if State.temporary_unlock_all else "Liberar todas as fases (teste)"
+	# _test_unlock_button.text = "Desativar liberação de teste" if State.temporary_unlock_all else "Liberar todas as fases (teste)"
 	call_deferred("_scroll_to_current")
 
 
@@ -339,13 +343,15 @@ func _return_to_current() -> void:
 
 func _world_header(world: Dictionary) -> PanelContainer:
 	var color: Color = Palette.BULBS[int(world["color"])]
+	var title_color := color.lightened(0.28)
+	var panel_tint := Palette.FACE.lerp(color.darkened(0.62), 0.22)
 	var compact := get_viewport_rect().size.x < 400.0
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(color, 0.1)
-	style.border_color = Color(color, 0.56)
+	style.bg_color = Color(panel_tint, 0.96)
+	style.border_color = Color(title_color, 0.92)
 	style.border_width_left = 4
 	style.set_corner_radius_all(18)
 	style.content_margin_left = 18
@@ -357,15 +363,15 @@ func _world_header(world: Dictionary) -> PanelContainer:
 	box.add_theme_constant_override("separation", 4)
 	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.add_child(box)
-	var world_name := Ui.label(str(world["name"]), 28 if compact else 34, color)
+	var world_name := Ui.label(str(world["name"]), 28 if compact else 34, title_color)
 	world_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(world_name)
-	var rule := Ui.label(str(world["rule"]), 17 if compact else 20, Palette.BASE)
+	var rule := Ui.label(str(world["rule"]), 17 if compact else 20, Color("f0ecff"))
 	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(rule)
 	if world.has("boss"):
-		var boss := Ui.label("No fim: %s" % str(world["boss"]), 15 if compact else 17, Palette.BULBS[1])
+		var boss := Ui.label("Boss: %s" % str(world["boss"]), 15 if compact else 17, Palette.BULBS[1])
 		boss.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(boss)
 	return panel

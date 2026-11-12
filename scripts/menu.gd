@@ -163,7 +163,7 @@ func _show_initials_easter_egg() -> void:
 	reveal.scroll_active = false
 	reveal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reveal.add_theme_font_size_override("normal_font_size", 58)
-	reveal.text = "[center][color=#%s]M[/color]  [color=#%s]♥[/color]  [color=#%s]K[/color][/center]" % [Palette.BULBS[1].to_html(false), Palette.BULBS[0].to_html(false), Palette.BULBS[2].to_html(false)]
+	reveal.text = "[center][color=#%s]K[/color]  [color=#%s]♥[/color]  [color=#%s]M[/color][/center]" % [Palette.BULBS[1].to_html(false), Palette.BULBS[0].to_html(false), Palette.BULBS[2].to_html(false)]
 	reveal.size = Vector2(minf(size.x - 32.0, 340.0), 88.0)
 	var title_center := _title_label.get_global_rect().get_center() - get_global_rect().position
 	reveal.position = title_center - reveal.size / 2.0

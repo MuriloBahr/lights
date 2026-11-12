@@ -135,6 +135,26 @@ func boss_theme(world_id: int) -> void:
 	_boss_theme_tween.tween_property(_boss_theme, "volume_db", -9.0, 0.7)
 
 
+func set_main_track(world_id: int) -> void:
+	if not is_instance_valid(_music):
+		return
+	var source_stream: AudioStream = BOSS_THEME_STREAMS.get(world_id) if world_id > 0 else null
+	if source_stream == null:
+		source_stream = load(MUSIC_PATH)
+	if is_instance_valid(_boss_theme_tween) and _boss_theme_tween.is_running():
+		_boss_theme_tween.kill()
+	_boss_theme.stop()
+	_boss_theme.volume_db = -48.0
+	if is_instance_valid(_music_tween) and _music_tween.is_running():
+		_music_tween.kill()
+	var stream := source_stream.duplicate() as AudioStream
+	stream.set("loop", true)
+	_music.stream = stream
+	_music.volume_db = -36.0
+	_music.play()
+	_fade_music(_music_target, 0.65)
+
+
 func stop_boss_theme() -> void:
 	if not is_instance_valid(_boss_theme):
 		return

@@ -5,6 +5,7 @@ signal changed
 signal solved
 
 const SHAPES := {
+	"self": [Vector2i(0, 0)],
 	"plus": [Vector2i(0, 0), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)],
 	"x": [Vector2i(0, 0), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)],
 }
@@ -100,5 +101,11 @@ func _apply_effect(p: Vector2i, touched: Dictionary) -> void:
 		"line":
 			for x in range(size):
 				_mark(touched, Vector2i(x, p.y))
+			for y in range(size):
+				_mark(touched, Vector2i(p.x, y))
+		"row":
+			for x in range(size):
+				_mark(touched, Vector2i(x, p.y))
+		"column":
 			for y in range(size):
 				_mark(touched, Vector2i(p.x, y))

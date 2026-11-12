@@ -3,8 +3,28 @@ extends Node
 const LEVELS_PATH := "res://data/levels.json"
 const SAVE_PATH := "user://save.json"
 const FADE_TIME := 0.25
-const LEVEL_SAVE_VERSION := 2
+const LEVEL_SAVE_VERSION := 4
 const INSERTED_PAINTING_LEVELS := 12
+const LEVEL_ID_REMAP_RANGES := [
+	[1, 12, 1],
+	[13, 24, 51],
+	[37, 12, 101],
+	[49, 12, 151],
+	[61, 12, 201],
+	[73, 9, 251],
+	[82, 9, 301],
+	[91, 6, 351],
+	[97, 6, 401],
+	[103, 6, 451],
+]
+const OLD_BOSS_COMPLETIONS := [
+	[12, 50], [36, 100], [48, 150], [60, 200], [72, 250],
+	[81, 300], [90, 350], [96, 400], [102, 450], [108, 500],
+]
+const LEVEL_ID_500_TO_200_RANGES := [
+	[1, 50, 1], [51, 50, 21], [101, 50, 41], [151, 50, 61], [201, 50, 81],
+	[251, 50, 101], [301, 50, 121], [351, 50, 141], [401, 50, 161], [451, 50, 181],
+]
 
 var levels: Array = []
 var worlds: Array = []
@@ -17,6 +37,7 @@ var mission_progress: Dictionary = {}
 var mission_lamps := 0
 var daily_mode := false
 var daily_date := ""
+var temporary_unlock_all := false
 var settings := {"music": true, "sfx": true, "vibration": true, "seen_howto": false}
 var sfx := Sfx.new()
 
@@ -64,7 +85,7 @@ func stars_for(id: int) -> int:
 
 
 func is_unlocked(id: int) -> bool:
-	return id == 1 or stars_for(id - 1) > 0
+	return temporary_unlock_all or id == 1 or stars_for(id - 1) > 0
 
 
 func set_current_level(index: int) -> void:
@@ -180,14 +201,72 @@ func _read() -> void:
 		current_level = int(parsed.get("current_level", current_level))
 		has_current_level = bool(parsed.get("has_current_level", false))
 		settings.merge(parsed.get("settings", {}), true)
-		if int(parsed.get("level_save_version", 1)) < LEVEL_SAVE_VERSION:
-			var shifted_stars := {}
-			for key in stars:
-				var id := int(key)
-				var shifted_id := id + INSERTED_PAINTING_LEVELS if id >= 25 else id
-				shifted_stars[str(shifted_id)] = stars[key]
-			stars = shifted_stars
+		var save_version := int(parsed.get("level_save_version", 1))
+		if save_version < LEVEL_SAVE_VERSION:
+			if save_version < 2:
+				var shifted_stars := {}
+				for key in stars:
+					var id := int(key)
+					var shifted_id := id + INSERTED_PAINTING_LEVELS if id >= 25 else id
+					shifted_stars[str(shifted_id)] = stars[key]
+				stars = shifted_stars
+				if has_current_level and current_level + 1 >= 25:
+					current_level += INSERTED_PAINTING_LEVELS
+			if save_version < 3:
+				var remapped_stars := {}
+				for key in stars:
+					var new_id := _remap_legacy_level_id(int(key))
+					remapped_stars[str(new_id)] = stars[key]
+				for boss_completion in OLD_BOSS_COMPLETIONS:
+					var old_boss_stars := int(stars.get(str(boss_completion[0]), 0))
+					if old_boss_stars > 0:
+						var new_boss_id := str(boss_completion[1])
+						remapped_stars[new_boss_id] = maxi(int(remapped_stars.get(new_boss_id, 0)), old_boss_stars)
+				stars = remapped_stars
+				if has_current_level:
+					current_level = _remap_legacy_level_id(current_level + 1) - 1
+			if save_version < 4:
+				var reduced_stars := {}
+				for key in stars:
+					var reduced_id := _remap_expanded_level_id(int(key))
+					if reduced_id > 0:
+						var reduced_key := str(reduced_id)
+						reduced_stars[reduced_key] = maxi(int(reduced_stars.get(reduced_key, 0)), int(stars[key]))
+				stars = reduced_stars
+				if has_current_level:
+					current_level = _remap_expanded_current_level(current_level + 1) - 1
 			_write()
+
+
+func _remap_legacy_level_id(level_id: int) -> int:
+	for remap in LEVEL_ID_REMAP_RANGES:
+		var old_start := int(remap[0])
+		var count := int(remap[1])
+		if level_id >= old_start and level_id < old_start + count:
+			return int(remap[2]) + level_id - old_start
+	return level_id
+
+
+func _remap_expanded_level_id(level_id: int) -> int:
+	for remap in LEVEL_ID_500_TO_200_RANGES:
+		var old_start := int(remap[0])
+		var count := int(remap[1])
+		if level_id >= old_start and level_id < old_start + count:
+			var phase := level_id - old_start + 1
+			if phase <= 20 or phase == 50:
+				return int(remap[2]) + mini(phase, 20) - 1
+			return 0
+	return level_id
+
+
+func _remap_expanded_current_level(level_id: int) -> int:
+	for remap in LEVEL_ID_500_TO_200_RANGES:
+		var old_start := int(remap[0])
+		var count := int(remap[1])
+		if level_id >= old_start and level_id < old_start + count:
+			var phase := level_id - old_start + 1
+			return int(remap[2]) + mini(phase, 20) - 1
+	return clampi(level_id, 1, levels.size())
 
 
 func _today_key() -> String:

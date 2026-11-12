@@ -7,7 +7,7 @@ var _visual_theme := 0
 
 
 func setup(id: int, phase_id := 0, theme_id := 0) -> void:
-	world_id = clampi(id, 1, 7)
+	world_id = clampi(id, 1, 10)
 	level_id = phase_id
 	_visual_theme = clampi(theme_id, 0, 3)
 	queue_redraw()
@@ -50,6 +50,15 @@ func _draw() -> void:
 		7:
 			top = Color("49304c")
 			bottom = Color("925b79")
+		8:
+			top = Color("17394a")
+			bottom = Color("397e83")
+		9:
+			top = Color("25224f")
+			bottom = Color("514d8a")
+		10:
+			top = Color("3b204c")
+			bottom = Color("9a477d")
 		_:
 			top = Palette.BG
 			bottom = Palette.BG
@@ -121,6 +130,18 @@ func _draw_world_motif(accent: Color) -> void:
 				draw_circle(center + Vector2(-6, 0), 12.0, Color(accent, 0.10))
 				draw_circle(center + Vector2(6, 0), 12.0, Color(accent, 0.10))
 				draw_colored_polygon(PackedVector2Array([center + Vector2(-17, 3), center + Vector2(17, 3), center + Vector2(0, 23)]), Color(accent, 0.10))
+		8:
+			for i in 5:
+				var y := h * (0.16 + 0.15 * i)
+				draw_arc(Vector2(w * 0.5, y), w * 0.32, 0.1, PI - 0.1, 48, Color(accent, 0.12), 3.0, true)
+		9:
+			for i in 7:
+				var x := w * (0.08 + 0.14 * i)
+				draw_line(Vector2(x, h * 0.08), Vector2(x - w * 0.08, h * 0.25), Color(accent, 0.10), 2.0, true)
+		10:
+			var center := Vector2(w * 0.5, h * 0.46)
+			for i in 5:
+				draw_arc(center, w * (0.12 + i * 0.075), 0.0, TAU, 56, Color(accent, 0.10), 2.0, true)
 
 
 func _draw_cute_decor(accent: Color) -> void:

@@ -9,17 +9,19 @@ var _earned := 0
 var _has_next := false
 var _daily := false
 var _easter_egg := ""
+var _boss_name := ""
 var _counter := Ui.label("", 30, Palette.BASE)
 var _bulbs: Array[Bulb] = []
 
 
-func setup(moves: int, par: int, earned: int, has_next: bool, daily := false, easter_egg := "") -> void:
+func setup(moves: int, par: int, earned: int, has_next: bool, daily := false, easter_egg := "", boss_name := "") -> void:
 	_moves = moves
 	_par = par
 	_earned = earned
 	_has_next = has_next
 	_daily = daily
 	_easter_egg = easter_egg
+	_boss_name = boss_name
 
 
 func _ready() -> void:
@@ -51,8 +53,9 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 14 if compact else 20)
 	panel.add_child(box)
 
-	box.add_child(Ui.label("Desafio concluído!" if _daily else "Resolvido!", 30 if compact else (42 if _daily else 48), Palette.BULBS[1]))
-	box.add_child(Ui.label(["Boa!", "Muito bem!", "Perfeito!"][_earned - 1], 22 if compact else 28, Palette.BASE))
+	var heading := "Desafio concluído!" if _daily else ("Chefe derrotado!" if not _boss_name.is_empty() else "Resolvido!")
+	box.add_child(Ui.label(heading, 30 if compact else (42 if _daily else 48), Palette.BULBS[1]))
+	box.add_child(Ui.label(_boss_name if not _boss_name.is_empty() else ["Boa!", "Muito bem!", "Perfeito!"][_earned - 1], 22 if compact else 28, Palette.BASE))
 	if not _easter_egg.is_empty():
 		box.add_child(Ui.label(_easter_egg, 48 if compact else 64, Palette.BULBS[0]))
 	box.add_child(_bulb_row(72.0 if compact else 96.0))

@@ -12,7 +12,7 @@ Lights é um jogo de lógica para celulares, feito com Godot 4.7 e GDScript. Em 
 
 ## Mundos e fases
 
-O jogo tem 90 fases em sete mundos, nesta ordem de progressão:
+O jogo tem 200 fases em dez mundos, com 20 fases em cada, nesta ordem de progressão:
 
 1. **Clássico** — o toque afeta a lâmpada selecionada e as vizinhas em cruz.
 2. **Pintura** — alterne as luzes até formar o desenho mostrado.
@@ -21,8 +21,11 @@ O jogo tem 90 fases em sete mundos, nesta ordem de progressão:
 5. **Mistura** — alterna padrões de cruz, diagonais e tabuleiros com formatos diferentes.
 6. **Espelho** — o toque também ecoa na posição oposta do tabuleiro.
 7. **Raio** — o toque afeta a fileira e a coluna.
+8. **Ondas** — o toque inverte uma fileira inteira.
+9. **Chuva de Estrelas** — o toque inverte uma coluna inteira.
+10. **Luz Final** — forme desenhos para ajudar os personagens dos mundos.
 
-Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite experimentar a regra. Pintura tem 24 fases. A progressão usa grades de até 4×4 e soluções de no máximo três toques; as seis primeiras fases de Clássico são resolvidas com um toque.
+Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite experimentar a regra. A fase 20 de cada mundo é uma batalha de boss; durante o duelo, cada boss usa uma animação de poder própria. As fases 17 a 20 de Pintura formam o easter egg K, A, U e 04 · 10. A progressão usa grades de até 5×5 e soluções curtas.
 
 ## Recursos
 
@@ -33,6 +36,8 @@ Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite
 - Música, efeitos sonoros e vibração, com controles de preferência nas configurações.
 - Tutoriais interativos por mundo e um guia **Como jogar** nas configurações.
 - Navegação separada entre **Fases**, **Missões** e **Temas** para manter cada tela mais simples.
+- Seleção das fases em um caminho sinuoso, adaptado para toque, com o último nível de cada mundo destacado como boss.
+- Cada boss tem nome próprio, reage às jogadas, usa um poder animado e tem uma tela de vitória especial.
 - Tela de **Missões** com um tabuleiro diário e uma tarefa simples de fase normal. As missões aceitam dicas e tentativas livres e dão lâmpadas bônus uma vez por dia.
 - Lâmpadas de fase continuam registrando o melhor resultado; as bônus se acumulam e desbloqueiam temas de fundo na tela **Temas**, sem consumir estrelas.
 - Progresso, recompensas de missão, temas selecionados, configurações e conclusão diária são salvos em `user://save.json`.
@@ -94,7 +99,9 @@ Python não é necessário para executar o jogo. Para regenerar `data/levels.jso
 python tools\generate_levels.py
 ```
 
-O gerador cria fases solucionáveis e grava a quantidade mínima de jogadas e uma sequência de solução. Cada fase inclui `id`, `world`, `size`, `grid`, `par` e `solution`. `shape`, `mask`, `effect`, `goal` e `hint` são opcionais. `goal` descreve o desenho-alvo das fases de Pintura.
+O gerador cria 20 fases por mundo, calcula a quantidade mínima de jogadas e grava uma sequência de solução em `data/levels.json`. A fase 20 de cada mundo é a batalha contra o chefe. As fases 17 a 20 do mundo Pintura formam o easter egg K, A, U e 04 · 10. Durante o duelo, cada chefe faz uma animação de poder própria após algumas jogadas; essas animações são visuais e não alteram o tabuleiro. O jogo lê o JSON em execução; não executa Python.
+
+Cada fase inclui `id`, `world`, `size`, `grid`, `par` e `solution`. `shape`, `mask`, `effect`, `goal` e `hint` são opcionais. `goal` descreve o desenho-alvo das fases de Pintura.
 
 ## Exportar para Android
 
@@ -110,7 +117,7 @@ Depois de mudar o projeto, é necessário exportar novamente e instalar a nova b
 
 ## Dados e arquitetura
 
-`data/levels.json` é a fonte dos mundos e das fases. A grade é representada em ordem de linhas, com `1` para lâmpada acesa e `0` para apagada. `par` indica o mínimo de toques; `solution` contém os índices das lâmpadas da solução. `goal` define o desenho-alvo, `mask` define quais posições têm lâmpadas, `effect` pode ser `mirror` ou `line`, e `shape` define o padrão de vizinhança (`plus` ou `x`).
+`data/levels.json` é a fonte dos mundos e das fases. A grade é representada em ordem de linhas, com `1` para lâmpada acesa e `0` para apagada. `par` indica o mínimo de toques; `solution` contém os índices das lâmpadas da solução. `goal` define o desenho-alvo, `mask` define quais posições têm lâmpadas, `effect` pode ser `mirror`, `line`, `row` ou `column`, e `shape` define o padrão de vizinhança (`self`, `plus` ou `x`).
 
 `Board` mantém a lógica separada da interface e emite os sinais `changed` e `solved`. A tela de jogo reage a esses sinais para atualizar as lâmpadas, efeitos e progresso. O progresso fica no armazenamento local do dispositivo, não no repositório.
 

@@ -4,6 +4,11 @@ extends Node
 const MUSIC_PATH := "res://assets/music/theme.mp3"
 const MUSIC_DB := -10.0
 const GAME_DUCK_DB := 8.0
+const BOSS_THEME_STREAMS := {
+	1: preload("res://assets/music/boss_sonequinha.mp3"),
+	2: preload("res://assets/music/boss_coruja.mp3"),
+	3: preload("res://assets/music/boss_nuvem.mp3"),
+}
 
 var vibration := true
 var _tap: AudioStreamPlayer
@@ -14,6 +19,9 @@ var _music: AudioStreamPlayer
 var _music_tween: Tween
 var _music_target := MUSIC_DB
 var _glow: AudioStreamPlayer
+var _boss_defeat: AudioStreamPlayer
+var _boss_theme: AudioStreamPlayer
+var _boss_theme_tween: Tween
 
 
 func _ready() -> void:
@@ -27,6 +35,16 @@ func _ready() -> void:
 	_start_music()
 	_glow = _player("res://assets/sfx/enter_glow.wav")
 	_glow.volume_db = -3.0
+	_boss_defeat = AudioStreamPlayer.new()
+	_boss_defeat.stream = _make_boss_defeat_sound()
+	_boss_defeat.bus = "SFX"
+	_boss_defeat.volume_db = -1.5
+	_boss_defeat.max_polyphony = 1
+	add_child(_boss_defeat)
+	_boss_theme = AudioStreamPlayer.new()
+	_boss_theme.bus = "Music"
+	_boss_theme.volume_db = -60.0
+	add_child(_boss_theme)
 
 
 func apply(settings: Dictionary) -> void:
@@ -89,6 +107,56 @@ func win() -> void:
 	_dip()
 
 
+func boss_defeat() -> void:
+	_boss_defeat.play()
+	_buzz(180)
+	_dip()
+
+
+func boss_theme(world_id: int) -> void:
+	var source_stream: AudioStream = BOSS_THEME_STREAMS.get(world_id)
+	if source_stream == null:
+		stop_boss_theme()
+		return
+	if is_instance_valid(_boss_theme_tween) and _boss_theme_tween.is_running():
+		_boss_theme_tween.kill()
+	_boss_theme.stop()
+	var stream := source_stream.duplicate() as AudioStream
+	stream.set("loop", true)
+	_boss_theme.stream = stream
+	_boss_theme.volume_db = -28.0
+	_boss_theme.play()
+	if is_instance_valid(_music):
+		if is_instance_valid(_music_tween) and _music_tween.is_running():
+			_music_tween.kill()
+		_music_tween = create_tween()
+		_music_tween.tween_property(_music, "volume_db", -48.0, 0.55)
+	_boss_theme_tween = create_tween()
+	_boss_theme_tween.tween_property(_boss_theme, "volume_db", -9.0, 0.7)
+
+
+func stop_boss_theme() -> void:
+	if not is_instance_valid(_boss_theme):
+		return
+	if not _boss_theme.playing and _boss_theme.volume_db <= -47.0:
+		return
+	if is_instance_valid(_boss_theme_tween) and _boss_theme_tween.is_running():
+		_boss_theme_tween.kill()
+	if is_instance_valid(_music_tween) and _music_tween.is_running():
+		_music_tween.kill()
+	_boss_theme_tween = create_tween()
+	_boss_theme_tween.set_parallel(true)
+	_boss_theme_tween.tween_property(_boss_theme, "volume_db", -48.0, 0.35)
+	if is_instance_valid(_music):
+		_boss_theme_tween.tween_property(_music, "volume_db", _music_target, 0.5)
+	_boss_theme_tween.set_parallel(false)
+	_boss_theme_tween.tween_callback(_finish_boss_theme)
+
+
+func _finish_boss_theme() -> void:
+	_boss_theme.stop()
+
+
 func glow() -> void:
 	_glow.play()
 	_buzz(15)
@@ -125,7 +193,7 @@ func _fade_music(db: float, seconds: float) -> void:
 
 
 func _dip() -> void:
-	if not _music:
+	if not _music or (_boss_theme and _boss_theme.playing):
 		return
 	if _music_tween:
 		_music_tween.kill()
@@ -156,3 +224,40 @@ func _player(path: String) -> AudioStreamPlayer:
 	p.max_polyphony = 4
 	add_child(p)
 	return p
+
+
+func _make_boss_defeat_sound() -> AudioStreamWAV:
+	var sample_rate := 22050
+	var sample_count := int(sample_rate * 0.9)
+	var samples := PackedByteArray()
+	samples.resize(sample_count * 2)
+	var low_phase := 0.0
+	var bell_phase := 0.0
+	var sparkle_phase := 0.0
+	var high_phase := 0.0
+	for i in sample_count:
+		var t := float(i) / sample_rate
+		var low_frequency := lerpf(250.0, 130.0, clampf(t / 0.42, 0.0, 1.0))
+		low_phase += TAU * low_frequency / sample_rate
+		var low_envelope := exp(-t * 5.5)
+		var low_note := sin(low_phase) * 0.24 * low_envelope
+		var bell_note := 0.0
+		if t >= 0.18:
+			bell_phase += TAU * 660.0 / sample_rate
+			bell_note = sin(bell_phase) * 0.16 * exp(-(t - 0.18) * 8.0)
+		var sparkle_note := 0.0
+		if t >= 0.38:
+			sparkle_phase += TAU * 990.0 / sample_rate
+			sparkle_note = sin(sparkle_phase) * 0.1 * exp(-(t - 0.38) * 10.0)
+		var high_note := 0.0
+		if t >= 0.48:
+			high_phase += TAU * 1320.0 / sample_rate
+			high_note = sin(high_phase) * 0.045 * exp(-(t - 0.48) * 12.0)
+		var sample := clampf((low_note + bell_note + sparkle_note + high_note) * 0.85, -1.0, 1.0)
+		samples.encode_s16(i * 2, int(sample * 32767.0))
+	var sound := AudioStreamWAV.new()
+	sound.format = AudioStreamWAV.FORMAT_16_BITS
+	sound.mix_rate = sample_rate
+	sound.stereo = false
+	sound.data = samples
+	return sound

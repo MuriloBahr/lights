@@ -1,7 +1,89 @@
 extends Control
 
-const MAX_CARD := Vector2(148, 156)
 const CARD_GAP := 12
+
+class WorldPath extends Control:
+	var entries: Array[Dictionary] = []
+	var accent := Color.WHITE
+	var focused_card: Control
+	var node_size := Vector2(82, 82)
+	var node_step := 104.0
+	var amplitude := 0.22
+
+	func setup(level_entries: Array[Dictionary], color: Color, compact: bool) -> void:
+		entries = level_entries.duplicate()
+		accent = color
+		node_size = Vector2(76, 76) if compact else Vector2(88, 88)
+		node_step = 96.0 if compact else 112.0
+		custom_minimum_size = Vector2(0, entries.size() * node_step + 20.0)
+		mouse_filter = Control.MOUSE_FILTER_PASS
+		for entry in entries:
+			var index := int(entry["index"])
+			var level: Dictionary = State.levels[index]
+			var unlocked := State.is_unlocked(int(level["id"]))
+			var boss := bool(entry["boss"])
+			var color_for_node: Color = Palette.BULBS[1] if boss else accent
+			var button := Ui.button("", color_for_node, 24, "glow")
+			button.custom_minimum_size = node_size + (Vector2(12, 12) if boss else Vector2.ZERO)
+			button.size = button.custom_minimum_size
+			button.disabled = not unlocked
+			button.focus_mode = Control.FOCUS_NONE
+			var on_pressed: Callable = entry["on_pressed"]
+			button.pressed.connect(on_pressed.bind(index))
+			add_child(button)
+			var content := VBoxContainer.new()
+			content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			content.alignment = BoxContainer.ALIGNMENT_CENTER
+			content.add_theme_constant_override("separation", 0)
+			content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			button.add_child(content)
+			if boss:
+				var boss_label := Ui.label("CHEFE", 12, Palette.FACE if unlocked else Palette.OFF_FACE)
+				boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				boss_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				content.add_child(boss_label)
+			var number := Ui.label(str(int(level["id"])), 28 if compact else 32, Palette.FACE if unlocked else Palette.OFF_FACE)
+			number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			content.add_child(number)
+			if unlocked:
+				var marks := LevelLampMarks.new()
+				marks.earned = State.stars_for(int(level["id"]))
+				marks.custom_minimum_size = Vector2(node_size.x - 18.0, 18.0)
+				marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				marks.queue_redraw()
+				content.add_child(marks)
+			if int(entry["index"]) == int(entry["focus_index"]):
+				focused_card = button
+		call_deferred("_position_nodes")
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_RESIZED:
+			_position_nodes()
+
+	func _position_nodes() -> void:
+		if entries.is_empty() or size.x <= 0.0:
+			return
+		for i in entries.size():
+			var button := get_child(i) as Control
+			var lane: float = [0.0, -1.0, 0.0, 1.0][i % 4]
+			var center_x := size.x * (0.5 + lane * amplitude)
+			var center_y := 24.0 + node_step * (float(i) + 0.5)
+			button.position = Vector2(center_x - button.size.x * 0.5, center_y - button.size.y * 0.5)
+		queue_redraw()
+
+	func _draw() -> void:
+		if entries.size() < 2 or size.x <= 0.0:
+			return
+		for i in entries.size() - 1:
+			var a := _node_center(i)
+			var b := _node_center(i + 1)
+			draw_line(a, b, Color(accent, 0.28), 8.0, true)
+			draw_line(a, b, Color(Palette.OFF, 0.55), 3.0, true)
+
+	func _node_center(index: int) -> Vector2:
+		var lane: float = [0.0, -1.0, 0.0, 1.0][index % 4]
+		return Vector2(size.x * (0.5 + lane * amplitude), 24.0 + node_step * (float(index) + 0.5))
 
 class LevelLampMarks extends Control:
 	var earned := 0
@@ -49,10 +131,9 @@ class LevelLampMarks extends Control:
 			draw_circle(center + Vector2(0, radius * 0.28), radius * 0.05, face_color)
 
 
-var _columns := 3
-var _card_size := MAX_CARD
 var _list: VBoxContainer
 var _progress: Label
+var _test_unlock_button: Button
 var _return_button: Button
 var _scroll: ScrollContainer
 var _current_card: Control
@@ -97,6 +178,11 @@ func _ready() -> void:
 	var compact := get_viewport_rect().size.x < 400.0
 	_progress = Ui.label("", 20 if compact else 24, Palette.BASE)
 	root.add_child(_progress)
+	_test_unlock_button = Ui.button("Liberar todas as fases (teste)", Palette.BULBS[5], 17)
+	_test_unlock_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_test_unlock_button.custom_minimum_size.y = 48
+	_test_unlock_button.pressed.connect(_toggle_test_unlock)
+	root.add_child(_test_unlock_button)
 
 	_scroll = ScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -150,41 +236,55 @@ func _input(event: InputEvent) -> void:
 func _rebuild_level_list() -> void:
 	if not is_instance_valid(_list):
 		return
-	var available_width := get_viewport_rect().size.x - 48.0
 	var compact := get_viewport_rect().size.x < 400.0
 	_progress.add_theme_font_size_override("font_size", 20 if compact else 24)
-	_columns = clampi(int((available_width + CARD_GAP) / (120.0 + CARD_GAP)), 1, 5)
-	var card_width := minf(MAX_CARD.x, (available_width - CARD_GAP * (_columns - 1)) / _columns)
-	_card_size = Vector2(maxf(100.0, card_width), MAX_CARD.y)
-	_list.custom_minimum_size.x = _columns * _card_size.x + (_columns - 1) * CARD_GAP
+	_list.custom_minimum_size.x = 0
 	for child in _list.get_children():
 		_list.remove_child(child)
 		child.queue_free()
 
 	var total := 0
 	var current := -1
-	var grid: GridContainer
+	var world_entries: Array[Dictionary] = []
+	var current_world_id := -1
 	_current_card = null
 	_focus_index = _level_to_focus()
 	for i in State.levels.size():
 		var level: Dictionary = State.levels[i]
 		total += State.stars_for(int(level["id"]))
 		var w := int(level["world"])
-		if w != current:
+		if current_world_id != -1 and w != current_world_id:
+			_add_world_path(current, world_entries, compact)
+			world_entries.clear()
+		if w != current_world_id:
 			current = w
-			_list.add_child(_world_header(State.worlds[w - 1]))
-			grid = _new_grid()
-			var grid_center := CenterContainer.new()
-			grid_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			grid_center.mouse_filter = Control.MOUSE_FILTER_PASS
-			grid_center.add_child(grid)
-			_list.add_child(grid_center)
-		grid.add_child(_card(i, State.worlds[w - 1]))
+			current_world_id = w
+		world_entries.append({"index": i, "boss": i == State.levels.size() - 1 or int(State.levels[i + 1]["world"]) != w, "focus_index": _focus_index, "on_pressed": Callable(self, "_play")})
+	if not world_entries.is_empty():
+		_add_world_path(current, world_entries, compact)
 	_progress.text = "Lâmpadas das fases: %d / %d" % [total, State.levels.size() * 3]
+	_test_unlock_button.text = "Desativar liberação de teste" if State.temporary_unlock_all else "Liberar todas as fases (teste)"
 	call_deferred("_scroll_to_current")
 
 
+func _toggle_test_unlock() -> void:
+	State.temporary_unlock_all = not State.temporary_unlock_all
+	_rebuild_level_list()
+
+
+func _add_world_path(world_id: int, entries: Array[Dictionary], compact: bool) -> void:
+	_list.add_child(_world_header(State.worlds[world_id - 1]))
+	var path := WorldPath.new()
+	path.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	path.setup(entries, Palette.BULBS[int(State.worlds[world_id - 1]["color"])], compact)
+	_list.add_child(path)
+	if is_instance_valid(path.focused_card):
+		_current_card = path.focused_card
+
+
 func _level_to_focus() -> int:
+	if State.temporary_unlock_all and State.has_current_level:
+		return clampi(State.current_level, 0, State.levels.size() - 1)
 	for i in State.levels.size():
 		var id := int(State.levels[i]["id"])
 		if State.is_unlocked(id):
@@ -264,50 +364,11 @@ func _world_header(world: Dictionary) -> PanelContainer:
 	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(rule)
+	if world.has("boss"):
+		var boss := Ui.label("No fim: %s" % str(world["boss"]), 15 if compact else 17, Palette.BULBS[1])
+		boss.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(boss)
 	return panel
-
-
-func _new_grid() -> GridContainer:
-	var grid := GridContainer.new()
-	grid.columns = _columns
-	grid.mouse_filter = Control.MOUSE_FILTER_PASS
-	grid.add_theme_constant_override("h_separation", CARD_GAP)
-	grid.add_theme_constant_override("v_separation", CARD_GAP)
-	return grid
-
-
-func _card(index: int, world: Dictionary) -> Button:
-	var level: Dictionary = State.levels[index]
-	var id := int(level["id"])
-	var unlocked := State.is_unlocked(id)
-	var compact := get_viewport_rect().size.x < 400.0
-	var color: Color = Palette.BULBS[int(world["color"])]
-
-	var b := Ui.button("", color)
-	b.custom_minimum_size = _card_size
-	b.disabled = not unlocked
-	b.pressed.connect(_play.bind(index))
-	if index == _focus_index:
-		_current_card = b
-
-	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(box)
-
-	var number := Ui.label(str(id), 36 if compact else 44, Palette.FACE if unlocked else Palette.OFF_FACE)
-	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(number)
-
-	if unlocked:
-		var marks := LevelLampMarks.new()
-		marks.earned = State.stars_for(id)
-		marks.custom_minimum_size = Vector2(_card_size.x - 20.0, 40.0)
-		marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		marks.queue_redraw()
-		box.add_child(marks)
-	return b
 
 
 func _play(index: int) -> void:

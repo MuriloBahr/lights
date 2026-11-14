@@ -33,16 +33,17 @@ Ao entrar em cada mundo pela primeira vez, uma demonstração interativa permite
 - Prévia das lâmpadas afetadas antes de confirmar a jogada; tocar fora cancela a seleção.
 - Nas quatro primeiras fases de cada mundo, a próxima lâmpada recomendada pulsa para mostrar onde tocar.
 - Transição animada ao iniciar o jogo, com lâmpadas subindo pela tela.
-- Música, efeitos sonoros e vibração, com controles de preferência nas configurações; a aba **Temas** também traz uma biblioteca para pré-visualizar e selecionar as trilhas de chefe desbloqueadas.
+- Música, efeitos sonoros e vibração, com controles de preferência nas configurações; a aba **Temas** também traz uma biblioteca para pré-visualizar e selecionar as dez trilhas de chefe, desbloqueadas ao vencer cada chefe.
 - Tutoriais interativos por mundo e um guia **Como jogar** nas configurações.
 - Navegação separada entre **Fases**, **Missões** e **Temas** para manter cada tela mais simples.
 - Seleção das fases em um caminho sinuoso, adaptado para toque, com o último nível de cada mundo destacado como boss.
 - Cada boss tem nome próprio, reage às jogadas, usa um poder animado e tem uma tela de vitória especial.
+- Os chefes aparecem sob a hipnose da Rainha da Escuridão, com olhos espiralados e aura violeta; o retrato e o tema dela têm uma paleta mais sombria.
 - Cada chefe libera um tema de fundo inspirado no seu visual; o novo tema aparece na tela de vitória e fica disponível na aba **Temas**.
 - Tela de **Missões** com um tabuleiro diário e uma tarefa simples de fase normal. As missões aceitam dicas e tentativas livres e dão lâmpadas bônus uma vez por dia.
 - Lâmpadas de fase continuam registrando o melhor resultado; as bônus se acumulam e desbloqueiam temas de fundo na tela **Temas**, sem consumir estrelas.
 - Progresso, recompensas de missão, temas e trilhas selecionados, configurações e conclusão diária são salvos em `user://save.json`.
-- Layout responsivo para telas estreitas e altas, com painéis de ajuda roláveis e seleção de fases compatível com toque.
+- Layout responsivo para telas estreitas e altas, com rolagem por gesto e inércia nas listas de fases, temas, missões e ajuda.
 - Orientação vertical configurada para celulares Android e iOS.
 
 ## Tecnologias e estrutura
@@ -66,25 +67,19 @@ scenes/
   themes.tscn            coleção de temas visuais
   game.tscn              tabuleiro
 scripts/
-  board.gd               regras e estado do tabuleiro, sem dependência da interface
-  game.gd                tela e fluxo da partida
-  level_select.gd        seleção e progresso das fases
-  state.gd               dados compartilhados, salvamento e transições
-  bulb.gd                lâmpadas, animações e desenho
-  world_backdrop.gd      fundos temáticos
-  goal_preview.gd        miniatura do desenho-alvo
-  how_to_panel.gd        demonstrações interativas
-  settings_panel.gd      configurações
-  menu.gd                tela inicial e animação de início
-  missions.gd            missões e recompensas diárias
-  themes.gd              coleção e seleção de temas visuais
-  gear_button.gd         botão de configurações
-  win_panel.gd           resultado da fase
-  sfx.gd                 música, efeitos sonoros e vibração
-  ui.gd                  elementos reutilizáveis de interface
-  pallete.gd             cores do jogo
+  autoload/              estado global e progresso salvo
+  audio/                 música, efeitos sonoros e vibração
+  core/                  paleta e fábrica de elementos de interface
+  gameplay/              regras do tabuleiro e fluxo da partida
+  screens/               menu, fases, missões e temas
+  ui/                    controles e painéis reutilizáveis
+    touch_scroll_container.gd rolagem por toque com inércia
+  visuals/               retratos de chefes e fundos
 tools/
   generate_levels.py     gerador opcional de fases
+  generate_sfx.py        ferramenta opcional de áudio
+docs/
+  ARCHITECTURE.md        responsabilidades e regras de organização
 project.godot            configurações do projeto e da tela
 ```
 

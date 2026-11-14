@@ -36,7 +36,7 @@ var levels: Array = []
 var worlds: Array = []
 var current_level := 0
 var has_current_level := false
-var requested_level_index := -1
+var level_select_focus_index := -1
 var daily_level := 0
 var stars := {}
 var daily_completed: Dictionary = {}
@@ -192,7 +192,7 @@ func visual_theme_name(theme_id: int) -> String:
 
 
 func boss_music_unlocked(world_id: int) -> bool:
-	return world_id >= 1 and world_id <= 3 and stars_for(BOSS_THEME_LEVEL_IDS[world_id - 1]) > 0
+	return world_id >= 1 and world_id <= BOSS_THEME_LEVEL_IDS.size() and stars_for(BOSS_THEME_LEVEL_IDS[world_id - 1]) > 0
 
 
 func selected_music_track() -> int:

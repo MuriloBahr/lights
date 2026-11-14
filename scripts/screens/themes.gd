@@ -20,13 +20,13 @@ const THEME_DESCRIPTIONS := [
 	"Um ateliê cor-de-rosa com respingos de tinta e estrelas.",
 	"Ondas tranquilas, bolhas e auroras sobre o mar.",
 	"Rastros brilhantes cruzam um céu roxo de meteoros.",
-	"Um eclipse real com raios de luz e uma coroa cintilante.",
+	"Um eclipse sombrio, névoa violeta e uma coroa de rubi.",
 ]
 const THEME_COLORS := [
 	Color("b99aff"), Color("ff9dcc"), Color("80e3c1"), Color("8fcaff"),
 	Color("c5a2ff"), Color("ffe18f"), Color("b9e8ff"), Color("c4e989"),
 	Color("e0aaff"), Color("65def0"), Color("ff91b7"), Color("8ce7e2"),
-	Color("b8a5ff"), Color("ff82cd"),
+	Color("b8a5ff"), Color("d95c9b"),
 ]
 const THEME_THRESHOLDS := [0, 20, 60, 120]
 
@@ -86,10 +86,9 @@ func _ready() -> void:
 	section_tabs.add_child(_music_tab)
 	root.add_child(section_tabs)
 
-	_scroll = ScrollContainer.new()
+	_scroll = TouchScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.scroll_deadzone = 5
 	root.add_child(_scroll)
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -192,8 +191,8 @@ func _refresh_music_list() -> void:
 		_music_list.remove_child(child)
 		child.queue_free()
 	_music_list.add_child(_music_card(0))
-	for world_id in 3:
-		_music_list.add_child(_music_card(world_id + 1))
+	for world_id in range(1, State.worlds.size() + 1):
+		_music_list.add_child(_music_card(world_id))
 
 
 func _theme_card(theme_id: int) -> PanelContainer:
@@ -337,7 +336,7 @@ func _go_to_boss_level(world_id: int) -> void:
 	for index in State.levels.size():
 		var level: Dictionary = State.levels[index]
 		if int(level["world"]) == world_id and level.has("boss"):
-			State.requested_level_index = index
+			State.level_select_focus_index = index
 			State.daily_mode = false
 			State.go("res://scenes/level_select.tscn")
 			return

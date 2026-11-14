@@ -122,10 +122,16 @@ func _draw() -> void:
 	var radius := side * 0.39
 	var world: Dictionary = State.worlds[world_id - 1]
 	var color: Color = Palette.BULBS[int(world["color"])]
+	var is_controlled := world_id != 10 and not _defeated
+	var aura_color := Color("d967ff") if is_controlled else color
 	var pulse := 0.035 * sin(_time * 2.8)
-	_pixel_circle(screen_center, radius * (1.27 + pulse), Color(color, 0.10 + pulse * 0.5))
-	_pixel_circle(screen_center, radius * (1.12 + pulse), Color(color, 0.20))
-	_pixel_arc(screen_center, radius * (1.34 + pulse), 0.0, TAU, 48, Color(color, 0.3), 1.8, true)
+	_pixel_circle(screen_center, radius * (1.27 + pulse), Color(aura_color, 0.10 + pulse * 0.5))
+	_pixel_circle(screen_center, radius * (1.12 + pulse), Color(aura_color, 0.20))
+	_pixel_arc(screen_center, radius * (1.34 + pulse), 0.0, TAU, 48, Color(aura_color, 0.3), 1.8, true)
+	if is_controlled:
+		var orbit_angle := _time * 0.62
+		_pixel_arc(screen_center, radius * 1.48, orbit_angle, orbit_angle + PI * 1.25, 40, Color("eaa0ff", 0.42), 2.3, true)
+		_pixel_arc(screen_center, radius * 1.48, orbit_angle + PI, orbit_angle + PI * 2.15, 32, Color("a94de0", 0.36), 1.8, true)
 	var idle_bob := sin(_time * 2.2) * 3.0 * _enter_anim
 	var impact_bounce := sin((1.0 - _hit_anim) * PI) * 5.0 * _hit_anim
 	var defeat_progress := clampf(_defeat_anim, 0.0, 1.0)
@@ -255,8 +261,14 @@ func _draw_sleepy(center: Vector2, radius: float, color: Color) -> void:
 	_pixel_circle(center + Vector2(-radius * 0.34, -radius * 0.36), radius * 0.17, Color(1, 1, 1, 0.38))
 	for side in [-1.0, 1.0]:
 		var eye := center + Vector2(side * radius * 0.34, -radius * 0.04)
-		_pixel_arc(eye, radius * 0.12, 0.15, PI - 0.15, 12, Palette.FACE, maxf(2.0, radius * 0.08), true)
-	_pixel_arc(center + Vector2(0, radius * 0.08), radius * 0.17, 0.15, PI - 0.15, 16, Palette.FACE, maxf(1.5, radius * 0.07), true)
+		if _defeated or _blink > 0.0:
+			_pixel_arc(eye + Vector2(0, radius * 0.03), radius * 0.12, PI, TAU, 12, Palette.FACE, maxf(2.0, radius * 0.08), true)
+		else:
+			_draw_hypnotic_eye(eye, radius * 0.15)
+	var sad := not _defeated
+	var mouth_start := PI + 0.15 if sad else 0.15
+	var mouth_end := TAU - 0.15 if sad else PI - 0.15
+	_pixel_arc(center + Vector2(0, radius * 0.08), radius * 0.17, mouth_start, mouth_end, 16, Palette.FACE, maxf(1.5, radius * 0.07), true)
 	_pixel_circle(center + Vector2(-radius * 0.62, radius * 0.24), radius * 0.12, Color(Palette.BLUSH, 0.7))
 	_pixel_circle(center + Vector2(radius * 0.62, radius * 0.24), radius * 0.12, Color(Palette.BLUSH, 0.7))
 	_pixel_arc(center + Vector2(0, -radius * 0.72), radius * 0.48, PI, TAU, 28, Palette.BULBS[2], maxf(3.0, radius * 0.16), true)
@@ -279,6 +291,8 @@ func _draw_owl(center: Vector2, radius: float, color: Color) -> void:
 		var eye_center := center + Vector2(side * radius * 0.32, -radius * 0.02)
 		if _defeated or _blink > 0.0:
 			_pixel_arc(eye_center + Vector2(0, radius * 0.03), radius * 0.15, PI, TAU, 16, Palette.FACE, maxf(2.0, radius * 0.075), true)
+		elif world_id != 10 and not _reacting:
+			_draw_hypnotic_eye(eye_center, radius * 0.2)
 		else:
 			_pixel_circle(eye_center, radius * 0.19, Color.WHITE)
 			var pupil_radius := radius * (0.1 if _reacting else 0.075)
@@ -350,7 +364,11 @@ func _draw_whale(center: Vector2, radius: float, color: Color) -> void:
 		var angle := TAU * float(i) / 20.0
 		body.append(center + Vector2(cos(angle) * radius * 1.12, sin(angle) * radius * 0.78))
 	_pixel_polygon(body, color)
-	_pixel_circle(center + Vector2(radius * 0.62, radius * 0.18), radius * 0.07, Palette.FACE)
+	var eye_center := center + Vector2(radius * 0.62, radius * 0.18)
+	if _defeated:
+		_pixel_arc(eye_center + Vector2(0, radius * 0.025), radius * 0.08, PI, TAU, 12, Palette.FACE, maxf(1.5, radius * 0.05), true)
+	else:
+		_draw_hypnotic_eye(eye_center, radius * 0.16)
 	_pixel_arc(center + Vector2(0, -radius * 0.76), radius * 0.35, PI, TAU, 24, Palette.BULBS[2], maxf(2.0, radius * 0.12), true)
 	var bubble_rise := fposmod(_time * 0.22, 1.0)
 	_pixel_circle(center + Vector2(-radius * 0.12, -radius * (0.88 + bubble_rise * 0.34)), radius * 0.08, Color(Palette.BULBS[2], 0.9 - bubble_rise * 0.25))
@@ -369,22 +387,66 @@ func _draw_meteor(center: Vector2, radius: float, color: Color) -> void:
 	_draw_star(center + Vector2(radius * 0.43, -radius * 0.46), radius * 0.14, Palette.BULBS[1])
 
 
-func _draw_queen(center: Vector2, radius: float, color: Color) -> void:
+func _draw_queen(center: Vector2, radius: float, _color: Color) -> void:
+	var cloak := Color("24152f")
+	var cloak_light := Color("3b1b4b")
+	var trim := Color("a62e78")
+	var face_color := Color("765076")
+	var eye_color := Color("ff578f")
 	_pixel_polygon(PackedVector2Array([
-		center + Vector2(-radius * 0.72, radius * 0.35), center + Vector2(-radius * 1.0, radius * 1.13),
-		center + Vector2(radius * 1.0, radius * 1.13), center + Vector2(radius * 0.72, radius * 0.35),
-	]), color.darkened(0.28))
-	_pixel_circle(center, radius * 0.84, color.darkened(0.1))
-	_draw_face(center, radius * 0.76)
-	_draw_star(center + Vector2(-radius * 0.62, -radius * 0.88), radius * 0.24, Palette.BULBS[2])
-	_draw_star(center + Vector2(0, -radius * 1.08), radius * 0.31, Palette.BULBS[1])
-	_draw_star(center + Vector2(radius * 0.62, -radius * 0.88), radius * 0.24, Palette.BULBS[2])
+		center + Vector2(-radius * 0.62, radius * 0.18),
+		center + Vector2(-radius * 1.12, radius * 0.88),
+		center + Vector2(-radius * 0.72, radius * 0.76),
+		center + Vector2(-radius * 0.42, radius * 1.18),
+		center + Vector2(0, radius * 0.93),
+		center + Vector2(radius * 0.42, radius * 1.18),
+		center + Vector2(radius * 0.72, radius * 0.76),
+		center + Vector2(radius * 1.12, radius * 0.88),
+		center + Vector2(radius * 0.62, radius * 0.18),
+	]), cloak)
+	_pixel_polygon(PackedVector2Array([
+		center + Vector2(-radius * 0.56, radius * 0.36),
+		center + Vector2(-radius * 0.28, radius * 0.66),
+		center + Vector2(0, radius * 0.52),
+		center + Vector2(radius * 0.28, radius * 0.66),
+		center + Vector2(radius * 0.56, radius * 0.36),
+	]), cloak_light)
+	_pixel_arc(center + Vector2(0, -radius * 0.2), radius * 0.78, PI * 1.05, PI * 1.95, 28, Color(trim, 0.85), maxf(2.0, radius * 0.055), true)
+	_pixel_circle(center, radius * 0.7, face_color)
+	_pixel_arc(center, radius * 0.7, 0.0, TAU, 40, Color("d777a8", 0.62), maxf(1.2, radius * 0.025), true)
+	if _defeated or _blink > 0.0:
+		for side in [-1.0, 1.0]:
+			var eye := center + Vector2(side * radius * 0.24, -radius * 0.08)
+			_pixel_arc(eye + Vector2(0, radius * 0.035), radius * 0.1, PI, TAU, 12, Color("30162f"), maxf(1.5, radius * 0.06), true)
+	else:
+		_pixel_circle(center + Vector2(-radius * 0.24, -radius * 0.08), radius * 0.09, eye_color)
+		_pixel_circle(center + Vector2(radius * 0.24, -radius * 0.08), radius * 0.09, eye_color)
+		_pixel_circle(center + Vector2(-radius * 0.24, -radius * 0.08), radius * 0.04, Color("26132f"))
+		_pixel_circle(center + Vector2(radius * 0.24, -radius * 0.08), radius * 0.04, Color("26132f"))
+		_pixel_line(center + Vector2(-radius * 0.39, -radius * 0.23), center + Vector2(-radius * 0.12, -radius * 0.3), cloak, maxf(1.5, radius * 0.06), true)
+		_pixel_line(center + Vector2(radius * 0.12, -radius * 0.3), center + Vector2(radius * 0.39, -radius * 0.23), cloak, maxf(1.5, radius * 0.06), true)
+		_pixel_arc(center + Vector2(0, radius * 0.2), radius * 0.19, PI + 0.18, TAU - 0.18, 16, Color("30162f"), maxf(1.5, radius * 0.055), true)
+	var crown := PackedVector2Array([
+		center + Vector2(-radius * 0.62, -radius * 0.53),
+		center + Vector2(-radius * 0.56, -radius * 0.96),
+		center + Vector2(-radius * 0.25, -radius * 0.69),
+		center + Vector2(0, -radius * 1.17),
+		center + Vector2(radius * 0.24, -radius * 0.69),
+		center + Vector2(radius * 0.56, -radius * 0.96),
+		center + Vector2(radius * 0.62, -radius * 0.53),
+	])
+	_pixel_polygon(crown, Color("30173a"))
+	_pixel_arc(center + Vector2(0, -radius * 0.55), radius * 0.58, PI, TAU, 28, Color(trim, 0.9), maxf(2.0, radius * 0.07), true)
+	_pixel_circle(center + Vector2(0, -radius * 0.85), radius * 0.075, eye_color)
+	_pixel_circle(center + Vector2(-radius * 0.4, -radius * 0.68), radius * 0.055, Color("bb62e5"))
+	_pixel_circle(center + Vector2(radius * 0.4, -radius * 0.68), radius * 0.055, Color("bb62e5"))
 
 
 func _draw_face(center: Vector2, radius: float) -> void:
 	var face := Palette.FACE
 	var eye_y := center.y - radius * 0.04
 	var eye_dx := radius * 0.34
+	var hypnotized := world_id != 10 and not _defeated
 	if _defeated:
 		for side in [-1.0, 1.0]:
 			var eye := Vector2(center.x + eye_dx * side, eye_y)
@@ -393,6 +455,9 @@ func _draw_face(center: Vector2, radius: float) -> void:
 		_pixel_circle(Vector2(center.x - eye_dx, eye_y), radius * 0.12, face)
 		_pixel_circle(Vector2(center.x + eye_dx, eye_y), radius * 0.12, face)
 		_pixel_circle(center + Vector2(0, radius * 0.22), radius * 0.1, face)
+	elif hypnotized and _blink <= 0.0:
+		_draw_hypnotic_eye(Vector2(center.x - eye_dx, eye_y), radius * 0.15)
+		_draw_hypnotic_eye(Vector2(center.x + eye_dx, eye_y), radius * 0.15)
 	elif _blink > 0.0:
 		for side in [-1.0, 1.0]:
 			var eye := Vector2(center.x + eye_dx * side, eye_y)
@@ -401,9 +466,22 @@ func _draw_face(center: Vector2, radius: float) -> void:
 		_pixel_circle(Vector2(center.x - eye_dx, eye_y), radius * 0.09, face)
 		_pixel_circle(Vector2(center.x + eye_dx, eye_y), radius * 0.09, face)
 	if not _reacting:
-		_pixel_arc(center + Vector2(0, radius * 0.08), radius * (0.2 if not _defeated else 0.24), 0.15, PI - 0.15, 16, face, maxf(1.5, radius * 0.07), true)
-	_pixel_circle(center + Vector2(-radius * 0.62, radius * 0.24), radius * 0.12, Color(Palette.BLUSH, 0.7))
-	_pixel_circle(center + Vector2(radius * 0.62, radius * 0.24), radius * 0.12, Color(Palette.BLUSH, 0.7))
+		var mouth_start := PI + 0.15 if hypnotized else 0.15
+		var mouth_end := TAU - 0.15 if hypnotized else PI - 0.15
+		var mouth_radius := radius * (0.24 if _defeated else 0.2)
+		_pixel_arc(center + Vector2(0, radius * 0.08), mouth_radius, mouth_start, mouth_end, 16, face, maxf(1.5, radius * 0.07), true)
+	var cheek := Color("bd4eaa", 0.48) if hypnotized else Color(Palette.BLUSH, 0.7)
+	_pixel_circle(center + Vector2(-radius * 0.62, radius * 0.24), radius * 0.12, cheek)
+	_pixel_circle(center + Vector2(radius * 0.62, radius * 0.24), radius * 0.12, cheek)
+
+
+func _draw_hypnotic_eye(center: Vector2, eye_radius: float) -> void:
+	var rotation := _time * 2.4 + center.x * 0.035
+	var base := Color("351443")
+	_pixel_circle(center, eye_radius, base)
+	_pixel_arc(center, eye_radius * 0.76, rotation, rotation + TAU * 0.76, 20, Color("ef7aff"), maxf(1.0, eye_radius * 0.28), true)
+	_pixel_arc(center, eye_radius * 0.43, rotation + PI, rotation + PI + TAU * 0.62, 16, Color("ffb0f7"), maxf(1.0, eye_radius * 0.24), true)
+	_pixel_circle(center + Vector2(cos(rotation) * eye_radius * 0.2, sin(rotation) * eye_radius * 0.2), eye_radius * 0.16, Color("fff0ff"))
 
 
 func _draw_star(center: Vector2, radius: float, color: Color) -> void:

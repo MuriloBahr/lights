@@ -7,15 +7,15 @@ var _visual_theme := 0
 
 const BOSS_THEME_TOP := [
 	Color("251b43"), Color("172344"), Color("326482"), Color("315443"), Color("30244e"),
-	Color("123c55"), Color("53334f"), Color("17485c"), Color("29254f"), Color("35203f"),
+	Color("123c55"), Color("53334f"), Color("17485c"), Color("29254f"), Color("100b20"),
 ]
 const BOSS_THEME_BOTTOM := [
 	Color("715083"), Color("5866a6"), Color("a4d8ef"), Color("a6cf75"), Color("b181cb"),
-	Color("44afbe"), Color("e789b5"), Color("78c9c8"), Color("8177c9"), Color("b64e91"),
+	Color("44afbe"), Color("e789b5"), Color("78c9c8"), Color("8177c9"), Color("35143f"),
 ]
 const BOSS_THEME_ACCENTS := [
 	Color("d7bdff"), Color("ffe18f"), Color("d8f4ff"), Color("d8f7a5"), Color("f0c4ff"),
-	Color("89f1ff"), Color("ff9fc6"), Color("a5fff1"), Color("c7b8ff"), Color("ff9ddd"),
+	Color("89f1ff"), Color("ff9fc6"), Color("a5fff1"), Color("c7b8ff"), Color("ed4d8e"),
 ]
 
 
@@ -70,8 +70,9 @@ func _draw() -> void:
 			top = Color("25224f")
 			bottom = Color("514d8a")
 		10:
-			top = Color("3b204c")
-			bottom = Color("9a477d")
+			top = Color("160f27")
+			bottom = Color("3c1c42")
+			accent = Color("df62c7")
 		_:
 			top = Palette.BG
 			bottom = Palette.BG
@@ -107,7 +108,8 @@ func _draw() -> void:
 	_draw_world_motif(accent)
 	if _visual_theme >= 4:
 		_draw_boss_theme_motif(_visual_theme - 4, accent)
-	_draw_cute_decor(accent)
+	if _visual_theme != 13:
+		_draw_cute_decor(accent)
 	_draw_sparkles(accent)
 
 

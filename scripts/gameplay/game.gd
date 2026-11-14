@@ -677,7 +677,7 @@ func _on_solved() -> void:
 		if not State.visual_theme_unlocked(boss_theme_id):
 			new_boss_theme = boss_theme_id
 		var boss_world_id := int(level["world"])
-		if boss_world_id <= 3 and not State.boss_music_unlocked(boss_world_id):
+		if not State.boss_music_unlocked(boss_world_id):
 			new_boss_track = boss_world_id
 	var moves := board.moves.size()
 	var earned := _stars(moves, int(level["par"]))

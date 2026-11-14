@@ -30,7 +30,7 @@ static func app_navigation(parent: Control, active: String) -> HBoxContainer:
 		var button_color: Color = tab["color"] if tab["id"] == active else Palette.OFF
 		var button := Ui.button(String(tab["title"]), button_color, 18)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size.y = 58
+		button.custom_minimum_size.y = 64
 		button.pressed.connect(State.go.bind(String(tab["path"])))
 		nav.add_child(button)
 	parent.add_child(nav)

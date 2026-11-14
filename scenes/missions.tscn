@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/missions.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/screens/missions.gd" id="1"]
 
 [node name="Missions" type="Control"]
 layout_mode = 3

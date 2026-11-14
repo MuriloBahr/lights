@@ -10,14 +10,14 @@ config_version=5
 
 [application]
 
-config/name="lights"
+config/name="Lights"
 run/main_scene="uid://mxwrd0iix3el"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://assets/icons/lights_icon.png"
 
 [autoload]
 
-State="*res://scripts/state.gd"
+State="*res://scripts/autoload/state.gd"
 
 [display]
 

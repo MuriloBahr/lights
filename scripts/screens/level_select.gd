@@ -6,6 +6,7 @@ class WorldPath extends Control:
 	var entries: Array[Dictionary] = []
 	var accent := Color.WHITE
 	var focused_card: Control
+	var current_card: Control
 	var node_size := Vector2(82, 82)
 	var node_step := 104.0
 	var amplitude := 0.22
@@ -55,6 +56,8 @@ class WorldPath extends Control:
 				content.add_child(marks)
 			if int(entry["index"]) == int(entry["focus_index"]):
 				focused_card = button
+			if int(entry["index"]) == int(entry["current_index"]):
+				current_card = button
 		call_deferred("_position_nodes")
 
 	func _notification(what: int) -> void:
@@ -137,10 +140,7 @@ var _test_unlock_button: Button
 var _return_button: Button
 var _scroll: ScrollContainer
 var _current_card: Control
-var _touch_id := -1
-var _touch_start := Vector2.ZERO
-var _touch_start_scroll := 0
-var _touch_scrolling := false
+var _focus_card: Control
 var _focus_index := 0
 var _returning_to_current := false
 var _settings_panel: SettingsPanel
@@ -184,11 +184,10 @@ func _ready() -> void:
 	# _test_unlock_button.pressed.connect(_toggle_test_unlock)
 	# root.add_child(_test_unlock_button)
 
-	_scroll = ScrollContainer.new()
+	_scroll = TouchScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.scroll_deadzone = 5
 	root.add_child(_scroll)
 
 	_list = VBoxContainer.new()
@@ -206,33 +205,6 @@ func _ready() -> void:
 	_rebuild_level_list()
 
 
-func _input(event: InputEvent) -> void:
-	if not is_instance_valid(_scroll):
-		return
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		if touch.pressed:
-			if _scroll.get_global_rect().has_point(touch.position):
-				_touch_id = touch.index
-				_touch_start = touch.position
-				_touch_start_scroll = _scroll.scroll_vertical
-				_touch_scrolling = false
-		elif touch.index == _touch_id:
-			if _touch_scrolling:
-				get_viewport().set_input_as_handled()
-			_touch_id = -1
-			_touch_scrolling = false
-	elif event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		if drag.index == _touch_id:
-			var delta_y := drag.position.y - _touch_start.y
-			if not _touch_scrolling and absf(delta_y) >= 8.0:
-				_touch_scrolling = true
-			if _touch_scrolling:
-				_scroll.scroll_vertical = _touch_start_scroll - roundi(delta_y)
-				get_viewport().set_input_as_handled()
-
-
 func _rebuild_level_list() -> void:
 	if not is_instance_valid(_list):
 		return
@@ -248,11 +220,13 @@ func _rebuild_level_list() -> void:
 	var world_entries: Array[Dictionary] = []
 	var current_world_id := -1
 	_current_card = null
-	if State.requested_level_index >= 0:
-		_focus_index = clampi(State.requested_level_index, 0, State.levels.size() - 1)
-		State.requested_level_index = -1
+	_focus_card = null
+	var progress_index := _level_to_focus()
+	if State.level_select_focus_index >= 0:
+		_focus_index = clampi(State.level_select_focus_index, 0, State.levels.size() - 1)
+		State.level_select_focus_index = -1
 	else:
-		_focus_index = _level_to_focus()
+		_focus_index = progress_index
 	for i in State.levels.size():
 		var level: Dictionary = State.levels[i]
 		total += State.stars_for(int(level["id"]))
@@ -263,12 +237,12 @@ func _rebuild_level_list() -> void:
 		if w != current_world_id:
 			current = w
 			current_world_id = w
-		world_entries.append({"index": i, "boss": i == State.levels.size() - 1 or int(State.levels[i + 1]["world"]) != w, "focus_index": _focus_index, "on_pressed": Callable(self, "_play")})
+		world_entries.append({"index": i, "boss": i == State.levels.size() - 1 or int(State.levels[i + 1]["world"]) != w, "focus_index": _focus_index, "current_index": progress_index, "on_pressed": Callable(self, "_play")})
 	if not world_entries.is_empty():
 		_add_world_path(current, world_entries, compact)
 	_progress.text = "Lâmpadas das fases: %d / %d" % [total, State.levels.size() * 3]
 	# _test_unlock_button.text = "Desativar liberação de teste" if State.temporary_unlock_all else "Liberar todas as fases (teste)"
-	call_deferred("_scroll_to_current")
+	call_deferred("_scroll_to_focus")
 
 
 func _toggle_test_unlock() -> void:
@@ -283,7 +257,9 @@ func _add_world_path(world_id: int, entries: Array[Dictionary], compact: bool) -
 	path.setup(entries, Palette.BULBS[int(State.worlds[world_id - 1]["color"])], compact)
 	_list.add_child(path)
 	if is_instance_valid(path.focused_card):
-		_current_card = path.focused_card
+		_focus_card = path.focused_card
+	if is_instance_valid(path.current_card):
+		_current_card = path.current_card
 
 
 func _level_to_focus() -> int:
@@ -299,13 +275,17 @@ func _level_to_focus() -> int:
 	return 0
 
 
-func _scroll_to_current(animated := false) -> void:
+func _scroll_to_focus(animated := false) -> void:
+	await _scroll_to_card(_focus_card, animated)
+
+
+func _scroll_to_card(card: Control, animated := false) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if not is_instance_valid(_current_card) or not is_instance_valid(_scroll):
+	if not is_instance_valid(card) or not is_instance_valid(_scroll):
 		return
-	var card_y := _current_card.global_position.y - _scroll.global_position.y + float(_scroll.scroll_vertical)
-	var centered_y := card_y - maxf(0.0, (_scroll.size.y - _current_card.size.y) * 0.5)
+	var card_y := card.global_position.y - _scroll.global_position.y + float(_scroll.scroll_vertical)
+	var centered_y := card_y - maxf(0.0, (_scroll.size.y - card.size.y) * 0.5)
 	var bar := _scroll.get_v_scroll_bar()
 	var max_scroll := maxf(0.0, bar.max_value - bar.page)
 	var destination := clampf(centered_y, 0.0, max_scroll)
@@ -336,7 +316,7 @@ func _update_return_button() -> void:
 func _return_to_current() -> void:
 	_returning_to_current = true
 	_return_button.hide()
-	await _scroll_to_current(true)
+	await _scroll_to_card(_current_card, true)
 	_returning_to_current = false
 	_update_return_button()
 

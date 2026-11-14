@@ -4,10 +4,17 @@ extends Node
 const MUSIC_PATH := "res://assets/music/theme.mp3"
 const MUSIC_DB := -10.0
 const GAME_DUCK_DB := 8.0
-const BOSS_THEME_STREAMS := {
-	1: preload("res://assets/music/boss_sonequinha.mp3"),
-	2: preload("res://assets/music/boss_coruja.mp3"),
-	3: preload("res://assets/music/boss_nuvem.mp3"),
+const BOSS_THEME_PATHS := {
+	1: "res://assets/music/boss_sonequinha.mp3",
+	2: "res://assets/music/boss_coruja.mp3",
+	3: "res://assets/music/boss_nuvem.mp3",
+	4: "res://assets/music/boss_camaleao.mp3",
+	5: "res://assets/music/boss_gemeos_lunares.mp3",
+	6: "res://assets/music/boss_polvo_eletrico.mp3",
+	7: "res://assets/music/boss_pintor.mp3",
+	8: "res://assets/music/boss_baleia_aurora.mp3",
+	9: "res://assets/music/boss_guardiao_meteoro.mp3",
+	10: "res://assets/music/boss_rainha_escuridao.mp3",
 }
 
 var vibration := true
@@ -114,7 +121,7 @@ func boss_defeat() -> void:
 
 
 func boss_theme(world_id: int) -> void:
-	var source_stream: AudioStream = BOSS_THEME_STREAMS.get(world_id)
+	var source_stream := _boss_stream(world_id)
 	if source_stream == null:
 		stop_boss_theme()
 		return
@@ -138,7 +145,7 @@ func boss_theme(world_id: int) -> void:
 func set_main_track(world_id: int) -> void:
 	if not is_instance_valid(_music):
 		return
-	var source_stream: AudioStream = BOSS_THEME_STREAMS.get(world_id) if world_id > 0 else null
+	var source_stream: AudioStream = _boss_stream(world_id) if world_id > 0 else null
 	if source_stream == null:
 		source_stream = load(MUSIC_PATH)
 	if is_instance_valid(_boss_theme_tween) and _boss_theme_tween.is_running():
@@ -153,6 +160,13 @@ func set_main_track(world_id: int) -> void:
 	_music.volume_db = -36.0
 	_music.play()
 	_fade_music(_music_target, 0.65)
+
+
+func _boss_stream(world_id: int) -> AudioStream:
+	var path := String(BOSS_THEME_PATHS.get(world_id, ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as AudioStream
 
 
 func stop_boss_theme() -> void:

@@ -47,7 +47,7 @@ func _ready() -> void:
 	for side in ["left", "right", "top", "bottom"]:
 		safe_margin.add_theme_constant_override("margin_" + side, 12)
 	add_child(safe_margin)
-	var scroll := ScrollContainer.new()
+	var scroll := TouchScrollContainer.new()
 	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

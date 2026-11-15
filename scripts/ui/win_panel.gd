@@ -140,7 +140,7 @@ func _make_theme_unlock_card(theme_id: int, track_world_id: int, compact: bool) 
 		theme_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		copy.add_child(theme_name)
 	if has_new_track:
-		var track_name := String(State.worlds[track_world_id - 1]["boss"])
+		var track_name := State.sfx.music_track_name(track_world_id)
 		var track_label := Ui.label("♫ Trilha: %s" % track_name, 15 if compact else 17, Color.WHITE)
 		track_label.add_theme_color_override("font_outline_color", Palette.FACE)
 		track_label.add_theme_constant_override("outline_size", 3)

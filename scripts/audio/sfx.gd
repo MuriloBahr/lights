@@ -142,6 +142,12 @@ func boss_theme(world_id: int) -> void:
 	_boss_theme_tween.tween_property(_boss_theme, "volume_db", -9.0, 0.7)
 
 
+func music_track_name(world_id: int) -> String:
+	if world_id == 0:
+		return "Tema principal"
+	return String(State.worlds[world_id - 1]["boss"])
+
+
 func set_main_track(world_id: int) -> void:
 	if not is_instance_valid(_music):
 		return

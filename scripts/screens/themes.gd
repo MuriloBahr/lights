@@ -281,7 +281,7 @@ func _music_card(world_id: int) -> PanelContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 5)
 	panel.add_child(box)
-	var track_name := "Tema principal" if world_id == 0 else String(State.worlds[world_id - 1]["boss"])
+	var track_name := State.sfx.music_track_name(world_id)
 	var heading := Ui.label("♫  " + track_name, 21, accent.lightened(0.2))
 	heading.add_theme_color_override("font_outline_color", Palette.FACE)
 	heading.add_theme_constant_override("outline_size", 2)
